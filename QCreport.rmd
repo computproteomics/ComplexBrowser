@@ -1,0 +1,100 @@
+---
+title: "ComplexBrowser - QC Report"
+output: pdf_document
+params:
+  stats: NA
+  no_cond: NA
+  no_rep: NA
+  QC_report: NA
+  
+---
+This is a quality control generated on the `r Sys.Date()` by the ComplexBrowser.
+The input data had `r params$no_cond` conditions and  `r params$no_rep` replicates with `r length(params$stats$absolute_df[,1])` proteins quantified.
+We have found `r sum(is.na(params$stats$absolute_df))` missing values in your data, that account to
+`r round(sum(is.na(params$stats$absolute_df))*100/(length(params$stats$absolute_df[,1])*params$no_cond*params$no_rep),3)` [%] of all values.
+
+## Data characteristics
+#### Distribution and correlation
+
+```{r boxplot, eval = TRUE, echo = FALSE, fig.align = 'center'} 
+boxplot(log2(params$stats$absolute_df[,-1]), main = "Data distribution", xlab = "Sample", ylab = "Log2(Intensity)")
+knitr::kable(params$QC_report$VAL_t, caption = "Mean Log2(Intensity) values table")
+df <- data.frame(params$stats$log2_means)
+colnames(df) <- paste0("C", 1:params$no_cond)
+ggpairs(df)
+```
+\newpage
+
+#### Missing values across samples
+
+```{r barplot, eval = TRUE, echo = FALSE, fig.align = 'center'}
+na_sums <- colSums(is.na(params$stats$absolute_df[,-1]))
+bp <- barplot(na_sums, xlab = "Sample", ylab = "Number of missing values", main = "Missing values across samples", ylim = c(0, max(na_sums)+4))
+text(x = bp , y = na_sums*1.1, labels = na_sums)
+```
+\newpage
+
+#### Data quality - Coefficient of Variation
+
+```{r CVplot, eval = TRUE, echo = FALSE, fig.align = 'center'}
+par(mfrow = c(params$QC_report$r,params$QC_report$c))
+x_max <- max(params$stats$CV_df)
+for(cond in 1:params$no_cond){
+  p <- hist(params$stats$CV_df[,cond],breaks = seq(0, x_max+5, by = 5), plot = FALSE)
+  p$counts <- p$counts/sum(p$counts)
+  plot(p, main = paste0("Distribution of CV in C", cond), xlab = "CV [%]", xlim = c(0, x_max+5), ylab = "Relative frequency")
+}
+knitr::kable(params$QC_report$CV_t, caption = "Coefficient of Variation across conditions")
+```
+
+In case of label free experiments median CV values should not exceed 15% for the data to be considered of good quality. For labeled experiments this value should be even lower. 
+
+\newpage
+
+#### Data insights - Q Values and Fold Changes
+
+Fold changes are calculated as:  
+$R = I_{2} / I_{1}$  
+$FC = R\ if \ R >= 1 \ and \ FC = -1/R, for \ R <1$  
+```{r STATS, eval = TRUE, echo = FALSE, fig.align = 'center'}
+par(mfrow = c(params$QC_report$r,params$QC_report$c))
+x_max <- max(params$stats$qValue_df)
+for (cond in 1:(params$no_cond-1)){
+    p <- hist(params$stats$qValue_df[,cond], breaks = seq(0,x_max+0.02,0.01), plot = FALSE)
+    p$counts <- p$counts/sum(p$counts)
+    plot(p, main = paste0("Distrib. of q Values C", cond+1, "/C1"), xlab = "q Value", xlim = c(0,x_max+0.02), ylab = "Relative frequency")
+}
+knitr::kable(params$QC_report$qValue_t, caption = "Q Values across conditions")
+knitr::kable(params$QC_report$fc_t, caption = "Fold changes across conditions")
+par(mfrow = c(params$QC_report$r,params$QC_report$c))
+x_lim <- range(params$stats$log2_ratios)
+y_lim <- min(-log10(params$stats$qValue_df))
+#stats$qValue_df is rounded to 4 decimals, hence the lowest possible could be 0.0001
+y_lim <- c(y_lim, -log10(0.0001))
+for(cond in 1:(params$no_cond-1)){
+    plot(x = params$stats$log2_ratios[,cond], y = -log10(params$stats$qValue_df[,cond]), 
+        main = paste0("Volcano plot C", cond+1, "/C1"), 
+        xlab = "Log2(Ratio)", 
+        ylab = "-Log10(qValue)",
+        xlim = x_lim,
+        ylim = y_lim, 
+        cex = 0.4)
+}
+```
+
+\newpage
+
+#### Data insigts - Principal Component Analysis
+
+```{r eval = TRUE, echo = FALSE, fig.align = 'center'}
+pca_obj <- princomp(na.omit(params$stats$log2_absolute_df))
+x <- pca_obj$loadings[,1]
+y <- pca_obj$loadings[,2]
+par(mfrow= c(1,1))
+plot(x = x, y=y , main = "Principal component analysis", xlab = "Component 1", ylab = "Component 2")
+text(x = x, y = y, labels = colnames(params$stats$absolute_df[,-1]), pos = 2, ps = 7)
+```
+
+
+
+
