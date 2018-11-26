@@ -124,6 +124,8 @@ renameAndSort <- function(data,
     }
   }
   if(qValues){
+    if (ncol(data) < columns_full) 
+      return(NULL)
     column_names_final <- c("ProteinID", column_names, paste("qValue C", 2:no_cond, sep = ""))
     colnames(data) <- column_names_final
     data <- data[,c("ProteinID",mixedsort(colnames(data)[2:columns]),colnames(data)[(columns+1):columns_full])]

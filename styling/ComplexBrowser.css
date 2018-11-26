@@ -11,6 +11,9 @@
   font-size: 14pt;
 }
 
+.skin-black .sidebar a {
+    color: #444444;
+}
 
 #input_stats_download, #load_example, #complex_table_DH, #QC_report, #run_QC, #run_analysis{
   display: block; 

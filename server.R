@@ -7,9 +7,10 @@ source("Functions.R")
 function(input,output,session){
   #Initiate empty reactiveValues object to store all data and results
   data <- reactiveValues()
+  user_input <- NULL
   data$file_indicator <- FALSE
   
-################ ################ ################ DYNAMIC INTERFACE ################ ################ ################
+  ################ ################ ################ DYNAMIC INTERFACE ################ ################ ################
   #Interacive user's interface elements, adjusting to the given input
   
   ################ TAB 1 - QC ################
@@ -27,7 +28,7 @@ function(input,output,session){
     if(!is.null(data$input_stats_merged)){
       downloadButton("input_stats_download", 
                      "Download table")
-    })
+  })
   
   #3. Download button for the QC report
   output$QC_report_button <- renderUI({
@@ -36,7 +37,7 @@ function(input,output,session){
                    "Download QC Report")
   })
   
-    
+  
   #4. QValue distribution
   output$qV_reference <- renderUI(
     sliderInput(inputId = "qV_reference",
@@ -185,7 +186,7 @@ function(input,output,session){
                 label = "Summary condition",
                 min = 2, max = data$no_cond, step = 1, value = 2)
   })
-################ ################ ################ Download handlers ################ ################ ################
+  ################ ################ ################ Download handlers ################ ################ ################
   #1. Input file with calculated statistics (table 1)
   output$input_stats_download <- downloadHandler(
     filename = paste("MSComplexR_Input_WithStats",Sys.time(),".csv",sep=""),
@@ -229,7 +230,7 @@ function(input,output,session){
       )
     })
   
-################ ################ ################ DATA LOADING AND WRANGLING ################ ################ ################
+  ################ ################ ################ DATA LOADING AND WRANGLING ################ ################ ################
   
   #1. Read in file
   output$input_file <- renderDataTable({
@@ -255,64 +256,77 @@ function(input,output,session){
   observeEvent(
     input$run_QC,
     {
-      if(ncol(user_input)!= (1+(input$no_conditions*input$no_replicates)) & 
-         ncol(user_input)!= (input$no_conditions*(input$no_replicates+1))){
-        
-        output$input_file <- renderDataTable({
-          DT::datatable(data.frame(Error = "Incorrect number of columns! It should be equal to C*R+1 or C*(R+1)"))})
-      }
-      else{
-        data$user_input <- renameAndSort(data = user_input, 
-                                         no_cond = input$no_conditions,
-                                         no_rep = input$no_replicates,
-                                         qValues = input$statistics,
-                                         grouped = input$grouped,
-                                         log2 = input$log2)
-        #By default do not put any normalisation step!
-        data$file_indicator <- TRUE
-        data$no_cond <- input$no_conditions
-        data$no_rep <- input$no_replicates
-        data$grouped <- input$grouped
-        data$stats <- calculateStatistics(data = data$user_input, 
-                                          no_cond = data$no_cond, 
-                                          no_rep = data$no_rep,
-                                          qValues = input$statistics,
-                                          normalize = NULL,
-                                          design = input$design)
-        
-        #To preserve the column names a separate cbind for matrices and data frames is needed
-        data$input_stats_merged <-  isolate(cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11])))
-        data$no_proteins <- length(data$user_input[,1])
-        output$input_file <- renderDataTable({ 
-          DT::datatable(data = data$input_stats_merged,
-                        options = list(scrollX = TRUE),
-                        caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
-                                                          'Table 1: ', htmltools::em('User data with calculated statistics 
+      if (!is.null(user_input)) {
+        if(ncol(user_input)!= (1+(input$no_conditions*input$no_replicates)) & 
+           ncol(user_input)!= (input$no_conditions*(input$no_replicates+1))){
+          
+          output$input_file <- renderDataTable({
+            DT::datatable(data.frame(Error = "Incorrect number of columns! It should be equal to C*R+1 or C*(R+1)"))})
+        }
+        else{
+          data$user_input <- renameAndSort(data = user_input, 
+                                           no_cond = input$no_conditions,
+                                           no_rep = input$no_replicates,
+                                           qValues = input$statistics,
+                                           grouped = input$grouped,
+                                           log2 = input$log2)
+          #By default do not put any normalisation step!
+          data$file_indicator <- TRUE
+          data$no_cond <- input$no_conditions
+          data$no_rep <- input$no_replicates
+          data$grouped <- input$grouped
+          data$stats <- calculateStatistics(data = data$user_input, 
+                                            no_cond = data$no_cond, 
+                                            no_rep = data$no_rep,
+                                            qValues = input$statistics,
+                                            normalize = NULL,
+                                            design = input$design)
+          
+          #To preserve the column names a separate cbind for matrices and data frames is needed
+          data$input_stats_merged <-  isolate(cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11])))
+          data$no_proteins <- length(data$user_input[,1])
+          output$input_file <- renderDataTable({ 
+            DT::datatable(data = data$input_stats_merged,
+                          options = list(scrollX = TRUE),
+                          caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
+                                                            'Table 1: ', htmltools::em('User data with calculated statistics 
                                                                                      and changes in protein expression ')))})
         }
       }
+    }
   )
   
   
   
   
   
-
+  
   #2. Event handling - load example data set
   observeEvent(
     input$load_example,
     {
       data$file_indicator <- TRUE
-      data$user_input <- readRDS("Myo_sample_BioReps_Qvalues_MSComplexR.Rds")
-      data$no_cond <- 6
-      data$no_rep <- 3
+      # data$user_input <- readRDS("Myo_sample_BioReps_Qvalues_MSComplexR.Rds")
+       data$user_input <- read.csv("Table S2_Statistics_T-cell_cut.csv")
+      # data$no_cond <- 6
+      # data$no_rep <- 3
+      data$no_cond <- 4
+      data$no_rep <- 2
       data$grouped <- TRUE
       data$stats <- calculateStatistics(data = data$user_input, 
                                         no_cond = data$no_cond, 
                                         no_rep =  data$no_rep,
-                                        qValues = TRUE,
+                                        qValues = FALSE,
                                         normalize = NULL,
-                                        design = NULL)
+                                        design = "unpaired")
+      # change rulers
+      updateSliderInput(session, "no_conditions",value=data$no_cond)
+      updateSliderInput(session, "no_replicates",value=data$no_rep)
+      updateCheckboxInput(session, "log2", value=F)
+      updateCheckboxInput(session, "grouped", value=T)
+      updateCheckboxInput(session, "statistics", value=F)
+      updateRadioButtons(session, "design", select="unpaired")
+      
       data$no_proteins <- length(data$user_input[,1])
       #To preserve the column names a separate cbind for matrices and data frames is needed
       data$input_stats_merged <-  cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
@@ -346,8 +360,8 @@ function(input,output,session){
   
   
   
-################ ################ ################ DATA VISUALISATION ################ ################ ################
-################ Tab 1 ################  
+  ################ ################ ################ DATA VISUALISATION ################ ################ ################
+  ################ Tab 1 ################  
   #1. Data distribution boxplot
   output$input_boxplot <- renderPlotly({
     req(data$stats)
@@ -360,9 +374,9 @@ function(input,output,session){
   #2. Missing values barplot
   output$NA_barplot <- renderPlotly({
     req(data$file_indicator == TRUE)
-      missingValuePlotly(data = data$stats$absolute_df,
-                         no_cond = data$no_cond, 
-                         no_rep = data$no_rep)
+    missingValuePlotly(data = data$stats$absolute_df,
+                       no_cond = data$no_cond, 
+                       no_rep = data$no_rep)
   })
   
   #3. CV distribution histogram
@@ -435,7 +449,7 @@ function(input,output,session){
     plotlyPCA(data = data$stats$absolute_df,
               no_cond = data$no_cond,
               no_rep  = data$no_rep)})
-################ Tab 2 ################    
+  ################ Tab 2 ################    
   #1. Main table with user complexes
   observeEvent(
     input$run_analysis,
@@ -528,12 +542,12 @@ function(input,output,session){
   
   #4. Single subunits expression barplot
   output$expression_barplot <- renderPlotly({
-  req(input$node_clicked, 
-      data$f_stats)
-  if(!(input$node_clicked %in% data$f_stats$absolute_df[,1])){
-    return(NULL)
-  }
-  my_plot <- expressionBarplot(as.character(input$node_clicked), f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
+    req(input$node_clicked, 
+        data$f_stats)
+    if(!(input$node_clicked %in% data$f_stats$absolute_df[,1])){
+      return(NULL)
+    }
+    my_plot <- expressionBarplot(as.character(input$node_clicked), f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
   })
   
   #5. Table underneath the barplot
@@ -557,12 +571,12 @@ function(input,output,session){
   
   #7. Co-expression (linearity)
   output$Complex_correlation <- renderPlotly({
-  req(data$f_database$NQS[input$user_complexes_rows_selected]>2)
-  plotComplexCorrelation(database = data$f_database,
-                         row = input$user_complexes_rows_selected,
-                         stats = data$f_stats,
-                         cond_1 = input$Corr_C1,
-                         cond_2 = input$Corr_C2)
+    req(data$f_database$NQS[input$user_complexes_rows_selected]>2)
+    plotComplexCorrelation(database = data$f_database,
+                           row = input$user_complexes_rows_selected,
+                           stats = data$f_stats,
+                           cond_1 = input$Corr_C1,
+                           cond_2 = input$Corr_C2)
   })
   
   #8. Complex information table
@@ -649,7 +663,7 @@ function(input,output,session){
                                       yes = input$minkowski_p, 
                                       no = NULL))
   })
-
+  
   #12. Summary - barplot of changing complexes, according to set thresholds (FC, noise)
   
   output$summary_barplot <- renderPlotly({
