@@ -813,7 +813,7 @@ plotCorrelationHeatmap <- function(names_vector, index_vector, stats, correlatio
     }
   }
   means_array <- t(means_array)
-  correlation_matrix <- cor(x = means_array,
+  correlation_matrix <- cor(x = means_array, use="na.or.complete",
                             method = correlation_measure)
   
   if(distance_measure != "minkowski"){
