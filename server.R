@@ -332,6 +332,7 @@ function(input,output,session){
         updateCheckboxInput(session, "grouped", value=T)
         updateCheckboxInput(session, "statistics", value=F)
         updateRadioButtons(session, "design", select="unpaired")
+        updateSelectInput(session, "species", select="Mouse")
         
         data$no_proteins <- length(data$user_input[,1])
         #To preserve the column names a separate cbind for matrices and data frames is needed
@@ -622,10 +623,10 @@ function(input,output,session){
                    complex_portal_prepared[,1])
       complex_df <- complex_portal_prepared[row,]
       complex_df <- complex_df %>% 
-        dplyr::select(Complex_name = Recommended.name, 
-                      Subunits_and_stoichiometry = Identifiers..and.stoichiometry..of.molecules.in.complex, 
-                      Confidence = Confidence, 
-                      GO_annotations = Go.Annotations,
+        dplyr::select(Complex_name = Complex_Name, 
+                      Subunits_and_stoichiometry = Subunits, 
+                      # Confidence = Confidence, 
+                      GO.annotations = Go_terms,
                       Comment = Description,  
                       Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
