@@ -28,7 +28,7 @@ function(input,output,session){
     if(!is.null(data$input_stats_merged)){
       downloadButton("input_stats_download", 
                      "Download table")
-  })
+    })
   
   #3. Download button for the QC report
   output$QC_report_button <- renderUI({
@@ -257,41 +257,45 @@ function(input,output,session){
     input$run_QC,
     {
       if (!is.null(user_input)) {
-        if(ncol(user_input)!= (1+(input$no_conditions*input$no_replicates)) & 
-           ncol(user_input)!= (input$no_conditions*(input$no_replicates+1))){
+        withProgress(message = 'Please wait', value = NA, {
           
-          output$input_file <- renderDataTable({
-            DT::datatable(data.frame(Error = "Incorrect number of columns! It should be equal to C*R+1 or C*(R+1)"))})
-        }
-        else{
-          data$user_input <- renameAndSort(data = user_input, 
-                                           no_cond = input$no_conditions,
-                                           no_rep = input$no_replicates,
-                                           qValues = input$statistics,
-                                           grouped = input$grouped,
-                                           log2 = input$log2)
-          #By default do not put any normalisation step!
-          data$file_indicator <- TRUE
-          data$no_cond <- input$no_conditions
-          data$no_rep <- input$no_replicates
-          data$grouped <- input$grouped
-          data$stats <- calculateStatistics(data = data$user_input, 
-                                            no_cond = data$no_cond, 
-                                            no_rep = data$no_rep,
-                                            qValues = input$statistics,
-                                            normalize = NULL,
-                                            design = input$design)
-          
-          #To preserve the column names a separate cbind for matrices and data frames is needed
-          data$input_stats_merged <-  isolate(cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11])))
-          data$no_proteins <- length(data$user_input[,1])
-          output$input_file <- renderDataTable({ 
-            DT::datatable(data = data$input_stats_merged,
-                          options = list(scrollX = TRUE),
-                          caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
-                                                            'Table 1: ', htmltools::em('User data with calculated statistics 
+          if(ncol(user_input)!= (1+(input$no_conditions*input$no_replicates)) & 
+             ncol(user_input)!= (input$no_conditions*(input$no_replicates+1))){
+            
+            output$input_file <- renderDataTable({
+              DT::datatable(data.frame(Error = "Incorrect number of columns! It should be equal to C*R+1 or C*(R+1)"))})
+          }
+          else{
+            data$user_input <- renameAndSort(data = user_input, 
+                                             no_cond = input$no_conditions,
+                                             no_rep = input$no_replicates,
+                                             qValues = input$statistics,
+                                             grouped = input$grouped,
+                                             log2 = input$log2)
+            #By default do not put any normalisation step!
+            data$file_indicator <- TRUE
+            data$no_cond <- input$no_conditions
+            data$no_rep <- input$no_replicates
+            data$grouped <- input$grouped
+            data$stats <- calculateStatistics(data = data$user_input, 
+                                              no_cond = data$no_cond, 
+                                              no_rep = data$no_rep,
+                                              qValues = input$statistics,
+                                              normalize = NULL,
+                                              design = input$design)
+            
+            #To preserve the column names a separate cbind for matrices and data frames is needed
+            data$input_stats_merged <-  isolate(cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11])))
+            data$no_proteins <- length(data$user_input[,1])
+            output$input_file <- renderDataTable({ 
+              DT::datatable(data = data$input_stats_merged,
+                            options = list(scrollX = TRUE),
+                            caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
+                                                              'Table 1: ', htmltools::em('User data with calculated statistics 
                                                                                      and changes in protein expression ')))})
-        }
+          }
+          
+        })
       }
     }
   )
@@ -305,36 +309,40 @@ function(input,output,session){
   observeEvent(
     input$load_example,
     {
-      data$file_indicator <- TRUE
-      # data$user_input <- readRDS("Myo_sample_BioReps_Qvalues_MSComplexR.Rds")
-       data$user_input <- read.csv("Table S2_Statistics_T-cell_cut.csv")
-      # data$no_cond <- 6
-      # data$no_rep <- 3
-      data$no_cond <- 4
-      data$no_rep <- 2
-      data$grouped <- TRUE
-      data$stats <- calculateStatistics(data = data$user_input, 
-                                        no_cond = data$no_cond, 
-                                        no_rep =  data$no_rep,
-                                        qValues = FALSE,
-                                        normalize = NULL,
-                                        design = "unpaired")
-      # change rulers
-      updateSliderInput(session, "no_conditions",value=data$no_cond)
-      updateSliderInput(session, "no_replicates",value=data$no_rep)
-      updateCheckboxInput(session, "log2", value=F)
-      updateCheckboxInput(session, "grouped", value=T)
-      updateCheckboxInput(session, "statistics", value=F)
-      updateRadioButtons(session, "design", select="unpaired")
-      
-      data$no_proteins <- length(data$user_input[,1])
-      #To preserve the column names a separate cbind for matrices and data frames is needed
-      data$input_stats_merged <-  cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
-      output$input_file <- renderDataTable({
-        DT::datatable( data$input_stats_merged,
-                       options = list(scrollX = TRUE),
-                       caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
-                                                         'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
+      withProgress(message = 'Please wait', value = NA, {
+        
+        data$file_indicator <- TRUE
+        # data$user_input <- readRDS("Myo_sample_BioReps_Qvalues_MSComplexR.Rds")
+        data$user_input <- read.csv("Table S2_Statistics_T-cell_cut.csv")
+        # data$no_cond <- 6
+        # data$no_rep <- 3
+        data$no_cond <- 4
+        data$no_rep <- 2
+        data$grouped <- TRUE
+        data$stats <- calculateStatistics(data = data$user_input, 
+                                          no_cond = data$no_cond, 
+                                          no_rep =  data$no_rep,
+                                          qValues = FALSE,
+                                          normalize = NULL,
+                                          design = "unpaired")
+        # change rulers
+        updateSliderInput(session, "no_conditions",value=data$no_cond)
+        updateSliderInput(session, "no_replicates",value=data$no_rep)
+        updateCheckboxInput(session, "log2", value=F)
+        updateCheckboxInput(session, "grouped", value=T)
+        updateCheckboxInput(session, "statistics", value=F)
+        updateRadioButtons(session, "design", select="unpaired")
+        
+        data$no_proteins <- length(data$user_input[,1])
+        #To preserve the column names a separate cbind for matrices and data frames is needed
+        data$input_stats_merged <-  cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
+        output$input_file <- renderDataTable({
+          DT::datatable( data$input_stats_merged,
+                         options = list(scrollX = TRUE),
+                         caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
+                                                           'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
+          
+        })
       })
     })
   
