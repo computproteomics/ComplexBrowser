@@ -626,9 +626,9 @@ function(input,output,session){
         dplyr::select(Complex_name = Complex_Name, 
                       Subunits_and_stoichiometry = Subunits, 
                       # Confidence = Confidence, 
-                      GO.annotations = Go_terms,
-                      Comment = Description,  
-                      Disease  = Disease)
+                      GO.annotations = GO_terms,
+                      Comment = NUS)  
+                      # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
     }
