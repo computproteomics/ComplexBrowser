@@ -109,7 +109,7 @@ renameAndSort <- function(data,
   columns <- no_cond*no_rep+1 #Without q values
   columns_full <- columns+no_cond-1
   if(log2){
-    data[,2:columns] <- round(2^data[,2:columns])
+    data[,2:columns] <- 2^data[,2:columns]
   }
   column_names <- vector(mode = "character", 
                          length = columns-1) #Only Columns besides Protein
@@ -243,6 +243,9 @@ calculateStatistics <- function(data, no_cond, no_rep, qValues = TRUE,
   columns <- no_cond * no_rep + 1
   absolute_df <- data[,2:columns]
   absolute_df[absolute_df == 0] <- NA
+  # rename cells with empty protein ids
+  data[is.na(data[,1]),1] <- "No ID"
+  data[data[,1] == "",1] <- "No ID"
   ProteinID <- data[,1]
   log2_absolute_df <- log2(absolute_df)
   log2_absolute_df <- as.matrix(log2_absolute_df)
@@ -312,6 +315,7 @@ calculateStatistics <- function(data, no_cond, no_rep, qValues = TRUE,
   colnames(ratios_df) <- paste("Ratio C",2:no_cond,"/C1",sep="")
   #Fold changes
   FC_df <- apply(ratios_df, c(1,2), function(x) ifelse(x >= 1, yes = x, no = (-1/x)))
+  FC_df <- as.matrix(FC_df)
   colnames(FC_df) <- paste("Fold change C",2:no_cond,"/C1",sep="")
   #Log2 ratios
   log2_ratios <- log2(ratios_df)
@@ -327,7 +331,7 @@ calculateStatistics <- function(data, no_cond, no_rep, qValues = TRUE,
               log2_means= round(log2_means_df,3), 
               zScore= round(zScore_normalized,3),
               ratios = round(as.matrix(ratios_df),3),
-              FC_df = round(FC_df, 3),
+              FC_df = round(as.matrix(FC_df), 3),
               log2_ratios = round(log2_ratios, 3)))
 }
 #7. Filtering the data according to species and proteins present in complexes
@@ -613,6 +617,8 @@ plotD3complexGraph <- function(stats, f_db, row, condition, q_threshold, fc_thre
   #Get indexes of subunits in the filtered input dataset
   index_vector <- vector(mode = 'numeric', length = no_subunits)
   proteinIDs <- as.character(stats$absolute_df$ProteinID)
+  # ensure that stats$FC_df is matrix
+  stats$FC_df <- as.matrix(stats$FC_df)
   #Fill in the links characteristics                         
   for (subunit in 1:no_subunits){
     subunit_name <- subunits[subunit]
@@ -1093,8 +1099,8 @@ complexDBsummary <- function(f_db_farms, no_cond, no_rep, condition, noise_th){
 regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPRESSED! NOT UNDER THRESHOLD!
   f_db_farms_fc <- f_db_farms[,-c(1:8)]
   f_db_farms_fc <- filter(f_db_farms_fc, Noise <= noise_th)
-  up <- colSums(f_db_farms_fc[,1:(no_cond-1)] > FC_th, na.rm = TRUE)
-  down <- colSums(f_db_farms_fc[,1:(no_cond-1)] < -FC_th, na.rm = TRUE)
+  up <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] > FC_th, na.rm = TRUE)
+  down <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] < -FC_th, na.rm = TRUE)
   df <- data.frame(Upregulated = up, 
                    Downregulated = down, 
                    Condition = names(up))

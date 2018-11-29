@@ -17,7 +17,7 @@ header <- dashboardHeader(title = "ComplexBrowser",
                           dropdownMenu(
                             type = "notifications", 
                             icon = icon("question-circle"),
-                            badgeStatus = NULL,
+                           badgeStatus = NULL,
                             headerText = "Documentation and help",
                             notificationItem(text = "Source code and documenatation", 
                                              icon = icon("question"),
