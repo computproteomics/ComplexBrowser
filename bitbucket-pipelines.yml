@@ -3,7 +3,6 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: michalakw/complexbrowser
 
 pipelines:
   default:
