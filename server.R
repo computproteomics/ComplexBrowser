@@ -624,13 +624,15 @@ function(input,output,session){
       complex_df <- complex_portal_prepared[row,]
       complex_df <- complex_df %>% 
         dplyr::select(Complex_name = Complex_Name, 
-                      Subunits_and_stoichiometry = Subunits, 
+                      Subunits = Subunits, 
                       # Confidence = Confidence, 
                       GO.annotations = GO_terms,
-                      Comment = NUS)  
+                      Comment = NUS) 
                       # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
-      complex_df$Subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
+      complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
+        gsub(",","][",x)))), "]",collapse="")
+      # complex_df$Protein_subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
     }
     DT::datatable(t(complex_df),
                   options = list(scrollX = FALSE,
