@@ -265,6 +265,10 @@ function(input,output,session){
             output$input_file <- renderDataTable({
               DT::datatable(data.frame(Error = "Incorrect number of columns! It should be equal to C*R+1 or C*(R+1)"))})
           }
+          else if(ncol(user_input) == (1+(input$no_conditions*input$no_replicates)) & input$statistics) {
+            output$input_file <- renderDataTable({
+              DT::datatable(data.frame(Error = "There are no additional columns q-values from statistical testing with this number of replicates and conditions"))})
+          }
           else{
             data$user_input <- renameAndSort(data = user_input, 
                                              no_cond = input$no_conditions,
