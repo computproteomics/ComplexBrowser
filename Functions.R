@@ -356,6 +356,7 @@ filterDatabase <- function(f_data, database, organism){
   indicator_v <- sapply(database$Subunits, function(x) sum(x %in% f_data[,1]))
   logic_v <- indicator_v > 0
   database <- database[logic_v,]
+  if (nrow(database) > 0)  {
   rownames(database) <- 1:length(database[,1])
   #Number of quantified subunits
   NQS <- sapply(database$Subunits, function(x) sum(x %in% f_data[,1]))
@@ -363,6 +364,9 @@ filterDatabase <- function(f_data, database, organism){
   database <- cbind(database,NQS, Coverage = round(Coverage, 2))
   database <- database[,c(1,2,4, 8, 9,5:7)]
   return(database)
+  } else {
+    return(NULL)
+  }
 }
 
 #9. Quality report

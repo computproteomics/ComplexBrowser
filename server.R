@@ -476,6 +476,10 @@ function(input,output,session){
           data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
           incProgress(0.1)
           data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
+          if (is.null(data$f_database)) {
+            DT::datatable(data.frame(error="No complexes found! Maybe wrong species"))
+            return()
+          }
           data$no_complexes <- length(data$f_database[,1])                                   
           data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
           incProgress(0.3)
