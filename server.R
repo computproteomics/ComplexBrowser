@@ -607,10 +607,8 @@ function(input,output,session){
       i <- input$user_complexes_rows_selected
       ComplexID <- as.character(data$f_database$ComplexID[i])
       row <- match(ComplexID, 
-                   cp_db[,1])
-                   # complex_portal[,1])
-      # complex_df <- complex_portal[row,]
-      complex_df <- cp_db[row,]
+                   complex_portal_prepared[,1])
+      complex_df <- complex_portal_prepared[row,]
       complex_df <- complex_df %>% 
         dplyr::select(Complex_name = Recommended.name, 
                       Subunits_and_stoichiometry = Identifiers..and.stoichiometry..of.molecules.in.complex, 
