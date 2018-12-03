@@ -14,7 +14,8 @@ COPY *R  /srv/shiny-server/
 COPY *Rds  /srv/shiny-server/
 COPY *csv  /srv/shiny-server/
 COPY *pdf  /srv/shiny-server/
-COPY styling/ /srv/shiny-server/
+RUN mkdir /srv/shiny-server/styling
+COPY styling/* /srv/shiny-server/styling/
 
 
 
