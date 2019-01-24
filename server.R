@@ -296,12 +296,12 @@ function(input,output,session){
                             options = list(scrollX = TRUE),
                             caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
                                                               'Table 1: ', htmltools::em('User data with calculated statistics 
-                                                                                     and changes in protein expression ')))})
-          }
+                                                                                         and changes in protein expression ')))})
+            }
           
-        })
+          })
       }
-    }
+      }
   )
   
   
@@ -384,13 +384,115 @@ function(input,output,session){
     return(data$distribution_plot$plot)
   })
   
+  #1.1 Download distribution boxplot
+  
+  #Create the download UI
+  output$input_boxplot_download_cui <- renderUI({
+    
+    req(data$distribution_plot$plot)
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("input_boxplot_download","Download")),
+           bsTooltip("input_boxplot_download", title = "Choose the width and height and download the above distribution boxplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save distribution boxplot in PDF format.
+  output$input_boxplot_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("DistributionLinePlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "distPlot", fileext = ".html")
+      
+      p <- data$distribution_plot$plot
+      
+      p$width <- input$input_boxplot_width
+      p$height <- input$input_boxplot_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "input_boxplot_width", value = 1000)
+      updateNumericInput(session, "input_boxplot_height", value = 1000)
+      
+    }
+    
+  )
+  
   #2. Missing values barplot
   output$NA_barplot <- renderPlotly({
-    req(data$file_indicator == TRUE)
-    missingValuePlotly(data = data$stats$absolute_df,
-                       no_cond = data$no_cond, 
-                       no_rep = data$no_rep)
+    
+    req(NA_barplot_reactive())
+    
+    return(NA_barplot_reactive())
+    
   })
+  
+  #Create plot in reactive expression.
+  NA_barplot_reactive <- reactive({
+    
+    req(data$file_indicator == TRUE)
+    
+    p <- missingValuePlotly(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep = data$no_rep)
+    
+    return(p)
+    
+  })
+  
+  #2.1 Download missing values barplot.
+  
+  #Create the download UI
+  output$NA_barplot_download_cui <- renderUI({
+    
+    req(NA_barplot_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("NA_barplot_download","Download")),
+           bsTooltip("NA_barplot_download", title = "Choose the width and height and download the above missing values barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save missing values barplot in PDF format.
+  output$NA_barplot_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("NABarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "naBarplot", fileext = ".html")
+      
+      p <- NA_barplot_reactive()
+      
+      p$width <- input$NA_barplot_width
+      p$height <- input$NA_barplot_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "NA_barplot_width", value = 1000)
+      updateNumericInput(session, "NA_barplot_height", value = 1000)
+      
+    }
+    
+  )
   
   #3. CV distribution histogram
   output$CV_distr <- renderPlotly({
@@ -401,6 +503,51 @@ function(input,output,session){
     
     return(data$CV_distr$plot)
   })
+  
+  #3.1 Download CV distribution histogram
+  
+  #Create the download UI
+  output$CV_distr_download_cui <- renderUI({
+    
+    req(data$CV_distr$plot)
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("CV_distr_download","Download")),
+           bsTooltip("CV_distr_download", title = "Choose the width and height and download the above Coefficient of variation distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save CV distribution histogram in PDF format.
+  output$CV_distr_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("CVDistributionHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "CVdistPlot", fileext = ".html")
+      
+      p <- data$CV_distr$plot
+      
+      p$width <- input$CV_distr_width
+      p$height <- input$CV_distr_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "CV_distr_width", value = 1000)
+      updateNumericInput(session, "CV_distr_height", value = 1000)
+      
+    }
+    
+  )
   
   #4. CV mean and median - turn to RED if mean CV > 15% in the sample
   output$CV_mean_median <- renderText({
@@ -414,15 +561,23 @@ function(input,output,session){
   
   #5. Correlation scatter plot
   output$scatter <- renderPlotly({
+    
+    req(scatter_reactive())
+    
+    return(scatter_reactive())
+    
+  })
+  
+  #Create plot in reactive expression.
+  scatter_reactive <- reactive({
+    
     req(data$input_stats_merged)
+    
     x <- log2(data$input_stats_merged[,(input$scatter_c1+1)])
     y <- log2(data$input_stats_merged[,(input$scatter_c2+1)])
     meth <- input$correlation_scatter
     corr <- round(cor(x, y, method = meth, use = "complete.obs"),3)
-    plotly::plot_ly(x = x,
-                    y = y,
-                    type = "scatter",
-                    marker = list(size = 3.5)) %>%
+    p<- plotly::plot_ly(x = x, y = y, type = "scatter", marker = list(size = 3.5)) %>%
       plotly::layout(title = paste(paste(toupper(substr(meth, 1, 1)), substr(meth, 2, nchar(meth)), sep=""),
                                    "correlation between samples", 
                                    input$scatter_c1, 
@@ -439,29 +594,256 @@ function(input,output,session){
                                                    'hoverCompareCartesian',
                                                    'hoverClosestCartesian',
                                                    'toggleSpikelines'))
+    
+    return(p)
+    
   })
   
+  #5.1 Download Correlation scatter plot
+  
+  #Create the download UI
+  output$scatter_download_cui <- renderUI({
+    
+    req(scatter_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("scatter_download","Download")),
+           bsTooltip("scatter_download", title = "Choose the width and height and download the above correlation scatter plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save correlation scatter plot in PDF format.
+  output$scatter_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("CorScatterHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
+      
+      p <- scatter_reactive()
+      
+      p$width <- input$scatter_width
+      p$height <- input$scatter_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "scatter_width", value = 1000)
+      updateNumericInput(session, "scatter_height", value = 1000)
+      
+    }
+    
+  )
+  
   #6. qValue distribution histogram
-  output$qV_distr <- renderPlotly(
-    if(data$file_indicator == TRUE){
-      qValuePlot(data$stats, 
-                 condition = input$qV_reference, 
-                 col = input$qV_colour)}
-    else{
-      return(NULL)
-    })
+  
+  output$qV_distr <- renderPlotly({
+    
+    req(qV_distr_reactive())
+    return(qV_distr_reactive())
+    
+  })
+  
+  #Create plot in reactive expression.
+  qV_distr_reactive <- reactive({
+    
+    if(data$file_indicator == TRUE){  
+      
+      p <- qValuePlot(data$stats, condition = input$qV_reference, col = input$qV_colour)
+      return(p)
+      
+    } else {
+      
+      return(NULL)  
+      
+    }
+    
+  })
+  
+  #6.1 Download qValue distribution histogram
+  
+  #Create the download UI
+  output$qV_distr_download_cui <- renderUI({
+    
+    req(qV_distr_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("qV_distr_download","Download")),
+           bsTooltip("qV_distr_download", title = "Choose the width and height and download the above qValue distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save qValue distribution histogram in PDF format.
+  output$qV_distr_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("qValueDistributionHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
+      
+      p <- qV_distr_reactive()
+      
+      p$width <- input$qV_distr_width
+      p$height <- input$qV_distr_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "qV_distr_width", value = 1000)
+      updateNumericInput(session, "qV_distr_height", value = 1000)
+      
+    }
+    
+  )
+  
   #7. Volcano plots
   output$volcano <- renderPlotly({
-    req(input$volcano_cond>=2 & !is.null(data$stats))
-    volcanoPlot(data$stats, input$volcano_cond, input$volcano_th)
+    
+    req(volcano_reactive())
+    
+    return(volcano_reactive())
+    
   })
+  
+  #Create plot in reactive expression
+  volcano_reactive <- reactive({
+    
+    req(input$volcano_cond>=2 & !is.null(data$stats))
+    
+    p <- volcanoPlot(data$stats, input$volcano_cond, input$volcano_th)
+    
+    return(p)
+    
+  })
+  
+  #7.1 Download volcano plot
+  
+  #Create the download UI
+  output$volcano_download_cui <- renderUI({
+    
+    req(volcano_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("volcano_download","Download")),
+           bsTooltip("volcano_download", title = "Choose the width and height and download the above volcano plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save volcano plot in PDF format.
+  output$volcano_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("VolcanoPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "volcano", fileext = ".html")
+      
+      p <- volcano_reactive()
+      
+      p$width <- input$volcano_width
+      p$height <- input$volcano_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "volcano_width", value = 1000)
+      updateNumericInput(session, "volcano_height", value = 1000)
+      
+    }
+    
+  )
   
   #8. PCA - take absolute values and in the function perform LOG2 transformation
   output$pca <- renderPlotly({
+    
+    req(pca_reactive())
+    
+    return(pca_reactive())
+    
+  })
+  
+  #Create plot in reactive expression
+  pca_reactive <- reactive({
+    
     req(data$stats)
-    plotlyPCA(data = data$stats$absolute_df,
-              no_cond = data$no_cond,
-              no_rep  = data$no_rep)})
+    
+    p <- plotlyPCA(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep  = data$no_rep)
+    
+    return(p)
+    
+  })
+  
+  #8.1 Download PCA plot
+  
+  #Create the download UI
+  output$pca_download_cui <- renderUI({
+    
+    req(pca_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("pca_download","Download")),
+           bsTooltip("pca_download", title = "Choose the width and height and download the above PCA plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save PCA plot in PDF format.
+  output$pca_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("PCAPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "pca", fileext = ".html")
+      
+      p <- pca_reactive()
+      
+      p$width <- input$pca_width
+      p$height <- input$pca_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "pca_width", value = 1000)
+      updateNumericInput(session, "pca_height", value = 1000)
+      
+    }
+    
+  )
+  
   ################ Tab 2 ################    
   #1. Main table with user complexes
   observeEvent(
@@ -532,6 +914,15 @@ function(input,output,session){
   
   #2. Star graph complex
   output$complex_graph <- networkD3::renderForceNetwork({
+    
+    req(complex_graph_reactive())
+    return(complex_graph_reactive())
+    
+  })
+  
+  #Reactive star graph
+  complex_graph_reactive <- reactive({
+    
     req(data$f_stats$FC_df,
         data$f_database,
         input$user_complexes_rows_selected,
@@ -544,7 +935,54 @@ function(input,output,session){
                                           q_threshold = data$significance_level,
                                           fc_threhold = input$FC_th)
     data$star_graph$star_graph
+    
   })
+  
+  #2.1 Download PCA plot
+  
+  #Create the download UI
+  output$complex_graph_cui <- renderUI({
+    
+    req(complex_graph_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("complex_graph_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("complex_graph_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download")),
+           bsTooltip("complex_graph_download", title = "Choose the width and height and download the above complex graph in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save complex graph in PDF format.
+  output$complex_graph_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("ComplexGraph_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "star", fileext = ".html")
+      
+      p <- complex_graph_reactive()
+      
+      p$width <- input$complex_graph_width
+      p$height <- input$complex_graph_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "complex_graph_width", value = 1000)
+      updateNumericInput(session, "complex_graph_height", value = 1000)
+      
+    }
+    
+  )
+  
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
@@ -556,6 +994,51 @@ function(input,output,session){
                                          scale = input$multiline_scale)
     data$multiline_plot$plot
   })
+  
+  #3.1 Download PCA plot
+  
+  #Create the download UI
+  output$multiline_plot_cui <- renderUI({
+    
+    req(complex_graph_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download")),
+           bsTooltip("multiline_plot_download", title = "Choose the width and height and download the above expression profile plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the multiline plot in PDF format.
+  output$multiline_plot_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("MultiLinePlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "multiPlot", fileext = ".html")
+      
+      p <- data$multiline_plot$plot
+      
+      p$width <- input$multiline_plot_width
+      p$height <- input$multiline_plot_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "multiline_plot_width", value = 1000)
+      updateNumericInput(session, "multiline_plot_height", value = 1000)
+      
+    }
+    
+  )
   
   #4. Single subunits expression barplot
   output$expression_barplot <- renderPlotly({
@@ -632,7 +1115,7 @@ function(input,output,session){
                       # Confidence = Confidence, 
                       GO.annotations = GO_terms,
                       Comment = NUS) 
-                      # Disease  = Disease)
+      # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
         gsub(",","][",x)))), "]",collapse="")
