@@ -10,6 +10,13 @@ library(heatmaply)
 library(GGally)
 library(rmarkdown)
 library(dplyr)
+#Packages needed for plotly to PDF
+#install.packages("webshot")
+library(webshot)
+#webshot::install_phantomjs()
+#install.packages("htmlwidgets")
+library(htmlwidgets)
+
 #Avoid the background colour errors
 tags$script(HTML("$('body').addClass('sidebar-mini');"))
 # Interface or the top part of the aplication, dropdown menu with buttons for references
@@ -17,7 +24,7 @@ header <- dashboardHeader(title = "ComplexBrowser",
                           dropdownMenu(
                             type = "notifications", 
                             icon = icon("question-circle"),
-                           badgeStatus = NULL,
+                            badgeStatus = NULL,
                             headerText = "Documentation and help",
                             notificationItem(text = "Source code and documenatation", 
                                              icon = icon("question"),
@@ -151,74 +158,86 @@ body <- dashboardBody(
       tabName = "input",
       h2("Input data quality control", style = "text-align: center;"),
       DT::dataTableOutput("input_file"),
-      fixedRow(
-        column(
-          width = 6, offset = 0,
-          h3("Log-transformed values distribution", style = "text-align: center;"),
-          br(),
-          fluidRow(
-            column(
-              width = 4, offset = 3,
-              selectInput(inputId = "norm_technique", label = "Choose normalization technique",
-                          selected = "Quantile", choices = c("Total Intensity","Mean", "Median", "Quantile"))),
-            column(
-              width = 1, offset = 0,
-              actionButton(inputId = "norm_run", label = "Run normalization", icon = icon("bar-chart")))),
-          br(),
-          plotlyOutput(outputId = "input_boxplot", 
-                       height = 500)),
-        column(
-          width = 6, offset = 0,
-          h3("Missing values distribution", style = "text-align: center;"),
-          br(),
-          plotlyOutput(outputId = "NA_barplot",
-                       height = 550),
-          br())),
+      br(),
+      tags$head(tags$style(HTML("div.box-header {text-align: center;}"))),
+      fluidRow(
+        box(title = "Log-transformed values distribution",
+            div(style="display: inline-block;vertical-align:top; width: 250px;",
+                selectInput(inputId = "norm_technique", label = "Choose normalization technique", selected = "Quantile", choices = c("Total Intensity","Mean", "Median", "Quantile"))),
+            div(style="display: inline-block;vertical-align:top; width: 200px; margin: 0px 0px 0px 0px;",
+                actionButton(inputId = "norm_run", label = "Run normalization", icon = icon("bar-chart"))),
+            plotlyOutput(outputId = "input_boxplot", height = 500),
+            uiOutput("input_boxplot_download_cui")
+        ),
+        box(title = "Missing values distribution",
+            tags$hr(style = "height:33px; visibility:hidden;"),
+            plotlyOutput(outputId = "NA_barplot", height = 500),
+            uiOutput("NA_barplot_download_cui")
+        )
+      ),
       br(),
       fluidRow(
         tabBox(
           tabPanel(
             title = "Coefficient of variation distribution",
-            uiOutput("CV_reference"),
-            colourInput(inputId = "CV_colour",
-                        label = "CV plot colour",
-                        value = "#428bca"),
+            div(style="display: inline-block;vertical-align:top; width: 300px;",
+                uiOutput("CV_reference")),
+            div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+            div(style="display: inline-block;vertical-align:top; width: 250px; margin: 10px 0px 0px 0px;",
+                colourpicker::colourInput(inputId = "CV_colour", label = "CV plot colour", value = "#428bca")),
             br(),
             htmlOutput("CV_mean_median"),
             br(),
-            plotlyOutput("CV_distr")),
+            plotlyOutput("CV_distr", height = 500), 
+            uiOutput("CV_distr_download_cui")),
           tabPanel(
             title = "Number of significant features",
-            uiOutput("qV_reference"),
-            colourInput(inputId = "qV_colour",
-                        label = "q value plot colour",
-                        value = "#428bca"),
+            div(style="display: inline-block;vertical-align:top; width: 300px;",
+                uiOutput("qV_reference")),
+            div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+            div(style="display: inline-block;vertical-align:top; width: 250px; margin: 10px 0px 0px 0px;",
+                colourpicker::colourInput(inputId = "qV_colour", label = "q value plot colour", value = "#428bca")),
             br(),
-            plotlyOutput("qV_distr", height = 500)),
+            tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
+            br(),
+            plotlyOutput("qV_distr", height = 500),
+            uiOutput("qV_distr_download_cui")),
           tabPanel(
             title = "Volcano plot",
-            sliderInput("volcano_th",
-                        "FDR threshold",
-                        min = 0.001, max = 0.1, step = 0.01, value = 0.05),
-            uiOutput(outputId = "volcano_cond"),
+            div(style="display: inline-block;vertical-align:top; width: 300px;",
+                sliderInput("volcano_th", "FDR threshold", min = 0.001, max = 0.1, step = 0.01, value = 0.05)),
+            div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+            div(style="display: inline-block;vertical-align:top; width: 300px;",
+                uiOutput(outputId = "volcano_cond")),
             br(),
-            plotlyOutput(outputId = "volcano", height = 500)),
+            tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
+            br(),
+            plotlyOutput(outputId = "volcano", height = 500),
+            uiOutput("volcano_download_cui")),
           tabPanel(
             title = "PCA",
+            tags$hr(style = "height:45px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
             br(),
+            tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
             br(),
-            br(),
-            plotlyOutput("pca", height = 500))),
+            plotlyOutput("pca", height = 500),
+            uiOutput("pca_download_cui"))
+        ),
         box(
           title = "Sample to sample correlation",
-          selectInput(inputId = "correlation_scatter",
-                      label = "Choose correlation measure",
-                      choices = c("pearson", "kendall", "spearman"),
-                      width = "300px"),
-          uiOutput(outputId = "scatter_c1"),
-          uiOutput(outputId = "scatter_c2"),
+          div(style="display: inline-block;vertical-align:top; width: 200px; margin: 10px 0px 0px 0px;",
+              selectInput(inputId = "correlation_scatter", label = "Choose correlation measure", choices = c("pearson", "kendall", "spearman"), width = "300px")),
+          div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+          div(style="display: inline-block;vertical-align:top; width: 230px;",
+              uiOutput(outputId = "scatter_c1")),
+          div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+          div(style="display: inline-block;vertical-align:top; width: 230px;",
+              uiOutput(outputId = "scatter_c2")),
           br(),
-          plotlyOutput(outputId = "scatter")))),
+          tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
+          br(),
+          plotlyOutput(outputId = "scatter", height = 500),
+          uiOutput("scatter_download_cui")))),
     ##### Tab 2 - protein complexes ######                     
     tabItem(tabName = "analysis",
             h2("Protein complex analysis", style = "text-align: center;"),
@@ -227,18 +246,22 @@ body <- dashboardBody(
             fluidRow(
               box(
                 title = "Protein complex visualization",
-                uiOutput("graph_condition"),
-                forceNetworkOutput("complex_graph")
+                div(style="width: 300px;",
+                    uiOutput("graph_condition")),
+                br(),
+                forceNetworkOutput("complex_graph"),
+                uiOutput("complex_graph_cui")
               ),
               tabBox(
                 tabPanel(
                   title = "Subunits expression profiles",
-                  selectInput(inputId = "multiline_scale", 
-                              label = "Select value to plot on Y axis",
-                              choices = c("zScore", "Log2 Intensity"), 
-                              selected = "Log2 Intensity"),
-                  plotlyOutput("multiline_plot", 
-                               height = "500px")),
+                  div(style="width: 300px;",
+                    selectInput(inputId = "multiline_scale", label = "Select value to plot on Y axis", choices = c("zScore", "Log2 Intensity"), selected = "Log2 Intensity")),
+                  tags$hr(style = "height:10px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
+                  br(),
+                  plotlyOutput("multiline_plot", height = "500px"),
+                  uiOutput("multiline_plot_cui")
+                ),
                 tabPanel(
                   title = "Protein expression barplot",
                   uiOutput("multiple"),
@@ -270,41 +293,38 @@ body <- dashboardBody(
                                             text-align: center;
                                             }
                                             "))),
-                    textOutput(outputId = "complex_name"),
-                    selectInput(inputId = "d_measure",
-                                label = "Distance measure for clustering",
-                                choices = c("manhattan", "euclidean", "minkowski", "maximum"),
-                                selected = "euclidean"),
-                    selectInput(inputId = "agg_method",
-                                label = "Aggregation method for hierarchical clustering",
-                                choices = c("single", "complete", "average", "median", "centroid"),
-                                selected = "complete"),
-                    uiOutput(outputId = "minkowski_p"),
-                    plotlyOutput(outputId = "expression_heatmap")),
-                  tabPanel(
-                    title = "Protein correlation heatmap",
-                    textOutput("complex_name1"),
-                    selectInput(inputId = "correlation_measure",
-                                label = "Correlation measure",
-                                choices = c("pearson", "spearman", "kendall"),
-                                selected = "pearson"),
-                    plotlyOutput(outputId = "correlation_heatmap", 
-                                 height = "150%"))),
-                tabBox(
-                  tabPanel(
-                    title = "Summary",
-                    plotlyOutput("summary_barplot", width = "100%", height = "150%")
-                  ),
-                  tabPanel(
-                    title = "Top 5 Up/Down",
-                    uiOutput(outputId = "summary_cond"),
-                    dataTableOutput(outputId = "changing_table"),
-                    textOutput(outputId = "summary", 
-                               inline = TRUE)
-                  ))))))
+                  textOutput(outputId = "complex_name"),
+                  selectInput(inputId = "d_measure",
+                              label = "Distance measure for clustering",
+                              choices = c("manhattan", "euclidean", "minkowski", "maximum"),
+                              selected = "euclidean"),
+                  selectInput(inputId = "agg_method",
+                              label = "Aggregation method for hierarchical clustering",
+                              choices = c("single", "complete", "average", "median", "centroid"),
+                              selected = "complete"),
+                  uiOutput(outputId = "minkowski_p"),
+                  plotlyOutput(outputId = "expression_heatmap")),
+                tabPanel(
+                  title = "Protein correlation heatmap",
+                  textOutput("complex_name1"),
+                  selectInput(inputId = "correlation_measure",
+                              label = "Correlation measure",
+                              choices = c("pearson", "spearman", "kendall"),
+                              selected = "pearson"),
+                  plotlyOutput(outputId = "correlation_heatmap", 
+                               height = "150%"))),
+              tabBox(
+                tabPanel(
+                  title = "Summary",
+                  plotlyOutput("summary_barplot", width = "100%", height = "150%")
+                ),
+                tabPanel(
+                  title = "Top 5 Up/Down",
+                  uiOutput(outputId = "summary_cond"),
+                  dataTableOutput(outputId = "changing_table"),
+                  textOutput(outputId = "summary", 
+                             inline = TRUE)
+                ))))))
 
 dashboardPage(header,sidebar,body, skin = "black")
-
-
-
 
