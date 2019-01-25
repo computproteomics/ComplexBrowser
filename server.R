@@ -1087,20 +1087,25 @@ function(input,output,session){
       i <- input$user_complexes_rows_selected
       ComplexID <- as.character(data$f_database$ComplexID[i])
       row <- match(ComplexID, 
-                   corum$ComplexID)
-      complex_df <- corum[row,]
+                   corum_prepared$ComplexID)
+      complex_df <- corum_prepared[row,]
       complex_df <- complex_df %>% 
-        dplyr::select(Complex_name = ComplexName, 
-                      Subunits = subunits.UniProt.IDs., 
-                      Subunits_gene = subunits.Gene.name., 
-                      Subunits_name = subunits.Protein.name.,
-                      FunCat_Description = FunCat.description,
-                      Comment = Complex.comment,  
-                      Disease  = Disease.comment)
+        dplyr::select(Complex_name = Complex_Name, 
+## TODO: add more info from original CORUM download
+                      Subunits = Subunits,
+                      GO_terms = Gene_ontology,
+                      Publication_PubMedID = PubMed.ID)
+                      # Subunits = subunits.UniProt.IDs., 
+                      # Subunits_gene = subunits.Gene.name., 
+                      # Subunits_name = subunits.Protein.name.,
+                      # FunCat_Description = FunCat.description,
+                      # Comment = Complex.comment,  
+                      # Disease  = Disease.comment)
       rownames(complex_df) <- "Additional complex information"
-      complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(";","][",x)), "]")
-      complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
-      complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
+      print(complex_df)
+      complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
+      # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
+      # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
       
     }
     else if(input$database == "EBI Complex Portal") {
@@ -1113,8 +1118,8 @@ function(input,output,session){
         dplyr::select(Complex_name = Complex_Name, 
                       Subunits = Subunits, 
                       # Confidence = Confidence, 
-                      GO.annotations = GO_terms,
-                      Comment = NUS) 
+                      GO.annotations = GO_terms) 
+      print(complex_df)
       # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 

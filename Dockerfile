@@ -2,6 +2,10 @@ FROM rocker/shiny
 LABEL maintainer="Veit Schwaemmle <veits@bmb.sdu.dk>"
 LABEL description="Docker image of ComplexBrowser implementation on top of shiny-server. The number of to-be-installed R packages requires patience when building this image."
 
+#RUN  sudo mount -o ro,remount /sys && sudo  mount -o rw,remount /sys
+#RUN echo N | tee /sys/module/overlay/parameters/metacopy
+#RUN rm -rf /var/cache/apt/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
+#RUN apt-get clean && apt-get update && apt-get install -y apt-utils
 
 RUN apt-get update && apt-get install -y libssl-dev && apt-get clean 
 
