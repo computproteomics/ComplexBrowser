@@ -6,7 +6,7 @@ library(shinydashboard)
 library(shinyBS)
 library(plotly)
 library(networkD3)
-library(heatmaply) 
+library(heatmaply)
 library(GGally)
 library(rmarkdown)
 library(dplyr)
@@ -20,7 +20,7 @@ library(htmlwidgets)
 #Avoid the background colour errors
 tags$script(HTML("$('body').addClass('sidebar-mini');"))
 # Interface or the top part of the aplication, dropdown menu with buttons for references
-header <- dashboardHeader(title = "ComplexBrowser", 
+header <- dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
                           dropdownMenu(
                             type = "notifications", 
                             icon = icon("question-circle"),
@@ -250,7 +250,7 @@ body <- dashboardBody(
                     uiOutput("graph_condition")),
                 br(),
                 forceNetworkOutput("complex_graph"),
-                uiOutput("complex_graph_cui")
+                uiOutput("complex_graph_download_cui")
               ),
               tabBox(
                 tabPanel(
@@ -260,7 +260,7 @@ body <- dashboardBody(
                   tags$hr(style = "height:10px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
                   br(),
                   plotlyOutput("multiline_plot", height = "500px"),
-                  uiOutput("multiline_plot_cui")
+                  uiOutput("multiline_plot_download_cui")
                 ),
                 tabPanel(
                   title = "Protein expression barplot",
@@ -272,15 +272,24 @@ body <- dashboardBody(
                   uiOutput("uniprot"),
                   br(),
                   plotlyOutput("expression_barplot", height = "410px"),
+                  uiOutput("expression_barplot_download_cui"),
                   DT::dataTableOutput("fc_table"),
                   DT::dataTableOutput("qValue_table")),
                 tabPanel(
                   title = "Co-expression LM",
-                  uiOutput(outputId = "Corr_C1"),
-                  uiOutput(outputId = "Corr_C2"),
-                  plotlyOutput(outputId = "Complex_correlation")),
+                  div(style="display: inline-block;vertical-align:top; width: 300px;",
+                      uiOutput(outputId = "Corr_C1")),
+                  div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+                  div(style="display: inline-block;vertical-align:top; width: 300px;",
+                      uiOutput(outputId = "Corr_C2")),
+                  br(),
+                  br(),
+                  plotlyOutput(outputId = "Complex_correlation", height = 500),
+                  uiOutput("Complex_correlation_download_cui")),
                 tabPanel(title = "Complex information",
-                         DT::dataTableOutput("complex_information", height = 500)))),
+                         DT::dataTableOutput("complex_information", height = 500)
+                        )
+                )),
             fluidRow(
               tabBox(
                 tabPanel(
@@ -294,29 +303,40 @@ body <- dashboardBody(
                                             }
                                             "))),
                   textOutput(outputId = "complex_name"),
-                  selectInput(inputId = "d_measure",
-                              label = "Distance measure for clustering",
-                              choices = c("manhattan", "euclidean", "minkowski", "maximum"),
-                              selected = "euclidean"),
-                  selectInput(inputId = "agg_method",
-                              label = "Aggregation method for hierarchical clustering",
-                              choices = c("single", "complete", "average", "median", "centroid"),
-                              selected = "complete"),
-                  uiOutput(outputId = "minkowski_p"),
-                  plotlyOutput(outputId = "expression_heatmap")),
+                  div(style="display: inline-block;vertical-align:top; width: 200px; margin: 10px 0px 0px 0px;",
+                      selectInput(inputId = "d_measure",
+                                  label = "Distance measure for clustering",
+                                  choices = c("manhattan", "euclidean", "minkowski", "maximum"),
+                                  selected = "euclidean")),
+                  div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+                  div(style="display: inline-block;vertical-align:top; width: 300px; margin: 10px 0px 0px 0px;",
+                      selectInput(inputId = "agg_method",
+                                  label = "Aggregation method for hierarchical clustering",
+                                  choices = c("single", "complete", "average", "median", "centroid"),
+                                  selected = "complete")),
+                  div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
+                  div(style="display: inline-block;vertical-align:top; width: 200px; margin: 10px 0px 0px 0px;",
+                      uiOutput(outputId = "minkowski_p")),
+                  br(),
+                  plotlyOutput(outputId = "expression_heatmap", height = 500),
+                  uiOutput("expression_heatmap_download_cui")),
                 tabPanel(
                   title = "Protein correlation heatmap",
                   textOutput("complex_name1"),
-                  selectInput(inputId = "correlation_measure",
-                              label = "Correlation measure",
-                              choices = c("pearson", "spearman", "kendall"),
-                              selected = "pearson"),
+                  div(style="width: 200px; margin: 10px 0px 0px 0px;",
+                      selectInput(inputId = "correlation_measure",
+                                  label = "Correlation measure",
+                                  choices = c("pearson", "spearman", "kendall"),
+                                  selected = "pearson")),
                   plotlyOutput(outputId = "correlation_heatmap", 
-                               height = "150%"))),
+                               height = 500),
+                  uiOutput("correlation_heatmap_download_cui"))),
               tabBox(
                 tabPanel(
                   title = "Summary",
-                  plotlyOutput("summary_barplot", width = "100%", height = "150%")
+                  div(style="display: inline-block;vertical-align:top; width: 1px;", tags$hr(style = "height:65px; visibility:hidden;")),
+                  plotlyOutput("summary_barplot", height = 500),
+                  uiOutput("summary_barplot_download_cui")
                 ),
                 tabPanel(
                   title = "Top 5 Up/Down",
