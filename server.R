@@ -393,7 +393,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("input_boxplot_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("input_boxplot_download","Download Figure")),
            bsTooltip("input_boxplot_download", title = "Choose the width and height and download the above distribution boxplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -458,7 +458,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("NA_barplot_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("NA_barplot_download","Download Figure")),
            bsTooltip("NA_barplot_download", title = "Choose the width and height and download the above missing values barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -513,7 +513,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("CV_distr_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("CV_distr_download","Download Figure")),
            bsTooltip("CV_distr_download", title = "Choose the width and height and download the above Coefficient of variation distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -608,7 +608,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("scatter_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("scatter_download","Download Figure")),
            bsTooltip("scatter_download", title = "Choose the width and height and download the above correlation scatter plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -678,7 +678,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("qV_distr_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("qV_distr_download","Download Figure")),
            bsTooltip("qV_distr_download", title = "Choose the width and height and download the above qValue distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -743,7 +743,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("volcano_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("volcano_download","Download Figure")),
            bsTooltip("volcano_download", title = "Choose the width and height and download the above volcano plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -808,7 +808,7 @@ function(input,output,session){
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("pca_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("pca_download","Download Figure")),
            bsTooltip("pca_download", title = "Choose the width and height and download the above PCA plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -915,14 +915,6 @@ function(input,output,session){
   #2. Star graph complex
   output$complex_graph <- networkD3::renderForceNetwork({
     
-    req(complex_graph_reactive())
-    return(complex_graph_reactive())
-    
-  })
-  
-  #Reactive star graph
-  complex_graph_reactive <- reactive({
-    
     req(data$f_stats$FC_df,
         data$f_database,
         input$user_complexes_rows_selected,
@@ -938,17 +930,15 @@ function(input,output,session){
     
   })
   
-  #2.1 Download PCA plot
+  #2.1 Download complex star graph
   
   #Create the download UI
-  output$complex_graph_cui <- renderUI({
+  output$complex_graph_download_cui <- renderUI({
     
-    req(complex_graph_reactive())
+    req(data$star_graph$star_graph)
     
-    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("complex_graph_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("complex_graph_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download")),
-           bsTooltip("complex_graph_download", title = "Choose the width and height and download the above complex graph in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    tags$p(div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download Figure")),
+           bsTooltip("complex_graph_download", title = "Click the download button to download the above complex graph in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
   
@@ -964,10 +954,11 @@ function(input,output,session){
       
       temp_name <- tempfile(pattern = "star", fileext = ".html")
       
-      p <- complex_graph_reactive()
+      p <- data$star_graph$star_graph
       
-      p$width <- input$complex_graph_width
-      p$height <- input$complex_graph_height
+      p$x$options$opacityNoHover <- T
+      p$x$options$opacity <- 1
+      p$x$options$opacityNoHover <- 1
       
       htmlwidgets::saveWidget(p, temp_name)
       
@@ -975,9 +966,6 @@ function(input,output,session){
       
       unlink(temp_name)
       unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "complex_graph_width", value = 1000)
-      updateNumericInput(session, "complex_graph_height", value = 1000)
       
     }
     
@@ -995,16 +983,16 @@ function(input,output,session){
     data$multiline_plot$plot
   })
   
-  #3.1 Download PCA plot
+  #3.1 Download multiline plot
   
   #Create the download UI
-  output$multiline_plot_cui <- renderUI({
+  output$multiline_plot_download_cui <- renderUI({
     
-    req(complex_graph_reactive())
+    req(data$multiline_plot$plot)
     
     tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
            div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("multiline_plot_download","Download Figure")),
            bsTooltip("multiline_plot_download", title = "Choose the width and height and download the above expression profile plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
   })
@@ -1042,13 +1030,68 @@ function(input,output,session){
   
   #4. Single subunits expression barplot
   output$expression_barplot <- renderPlotly({
+    
+    req(expression_barplot_reactive())
+    return(expression_barplot_reactive())
+
+  })
+  
+  #Reactive single subunits expression barplot
+  expression_barplot_reactive <- reactive({
+    
     req(input$node_clicked, 
         data$f_stats)
     if(!(input$node_clicked %in% data$f_stats$absolute_df[,1])){
       return(NULL)
     }
     my_plot <- expressionBarplot(as.character(input$node_clicked), f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
+    
   })
+  
+  #4.1 Download single subunits expression barplot
+  
+  #Create the download UI
+  output$expression_barplot_download_cui <- renderUI({
+    
+    req(expression_barplot_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("expression_barplot_download","Download Figure")),
+           bsTooltip("expression_barplot_download", title = "Choose the width and height and download the above expression barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the single subunits expression barplot in PDF format.
+  output$expression_barplot_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("ExpressionBarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+      
+      p <- expression_barplot_reactive()
+      
+      p$width <- input$expression_barplot_width
+      p$height <- input$expression_barplot_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "expression_barplot_width", value = 1000)
+      updateNumericInput(session, "expression_barplot_height", value = 1000)
+      
+    }
+    
+  )
   
   #5. Table underneath the barplot
   output$fc_table <- renderDataTable({
@@ -1071,13 +1114,69 @@ function(input,output,session){
   
   #7. Co-expression (linearity)
   output$Complex_correlation <- renderPlotly({
+    
+    req(Complex_correlation_reactive())
+    return(Complex_correlation_reactive())
+    
+  })
+  
+  #Reactive co-expression plot
+  Complex_correlation_reactive <- reactive({
+    
     req(data$f_database$NQS[input$user_complexes_rows_selected]>2)
     plotComplexCorrelation(database = data$f_database,
                            row = input$user_complexes_rows_selected,
                            stats = data$f_stats,
                            cond_1 = input$Corr_C1,
                            cond_2 = input$Corr_C2)
+    
   })
+  
+  #7.1 Download complex correlation graph
+  
+  #Create the download UI
+  output$Complex_correlation_download_cui <- renderUI({
+    
+    req(Complex_correlation_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("Complex_correlation_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("Complex_correlation_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("Complex_correlation_download","Download Figure")),
+           bsTooltip("Complex_correlation_download", title = "Choose the width and height and download the above complex correlation plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the single subunits expression barplot in PDF format.
+  output$Complex_correlation_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("ComplexCorrelationPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+      
+      p <- Complex_correlation_reactive()
+      
+      p$width <- input$Complex_correlation_width
+      p$height <- input$Complex_correlation_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "Complex_correlation_width", value = 1000)
+      updateNumericInput(session, "Complex_correlation_height", value = 1000)
+      
+    }
+    
+  )
+  
   
   #8. Complex information table
   output$complex_information <- renderDataTable({
@@ -1145,6 +1244,15 @@ function(input,output,session){
   
   #10. Expression heatmap
   output$expression_heatmap <- renderPlotly({
+    
+    req(expression_heatmap_reactive())
+    return(expression_heatmap_reactive())
+    
+  })
+  
+  #Reactive expression heat map
+  expression_heatmap_reactive <- reactive({
+    
     req(data$f_database$NQS[input$user_complexes_rows_selected]>=2)
     return(plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
                               index_vector = data$multiline_plot$index_vector,
@@ -1155,9 +1263,64 @@ function(input,output,session){
                               p = ifelse(test = input$d_measure == "minkowski", 
                                          yes = input$minkowski_p, 
                                          no = NULL))$heatmap)
+    
   })
+  
+  #10.1 Download expression heat map in PDF
+  #Create the download UI
+  output$expression_heatmap_download_cui <- renderUI({
+    
+    req(expression_heatmap_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_heatmap_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_heatmap_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("expression_heatmap_download","Download Figure")),
+           bsTooltip("expression_heatmap_download", title = "Choose the width and height and download the above expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the expression heatmap in PDF format.
+  output$expression_heatmap_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("ExpressionHeatmap_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "exprHeatmap", fileext = ".html")
+      
+      p <- expression_heatmap_reactive()
+      
+      p$width <- input$expression_heatmap_width
+      p$height <- input$expression_heatmap_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "expression_heatmap_width", value = 1000)
+      updateNumericInput(session, "expression_heatmap_height", value = 1000)
+      
+    }
+    
+  )
+  
   #11. Co-expression heatmap
   output$correlation_heatmap <- renderPlotly({
+    
+    req(correlation_heatmap_reactive())
+    return(correlation_heatmap_reactive())
+    
+  })
+  
+  #Co-expression heatmap in reactive expression
+  correlation_heatmap_reactive <- reactive({
+    
     req(data$f_database$NQS[input$user_complexes_rows_selected]>=2)
     plotCorrelationHeatmap(names_vector = data$multiline_plot$subunits_names,
                            index_vector = data$multiline_plot$index_vector,
@@ -1168,14 +1331,114 @@ function(input,output,session){
                            p = ifelse(test = input$d_measure == "minkowski", 
                                       yes = input$minkowski_p, 
                                       no = NULL))
+    
   })
+  
+  #11.1 Download co-expression heat map in PDF
+  #Create the download UI
+  output$correlation_heatmap_download_cui <- renderUI({
+    
+    req(correlation_heatmap_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("correlation_heatmap_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("correlation_heatmap_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("correlation_heatmap_download","Download Figure")),
+           bsTooltip("correlation_heatmap_download", title = "Choose the width and height and download the above co-expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the co-expression heatmap in PDF format.
+  output$correlation_heatmap_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("CoExpressionHeatmap_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "coExprHeatmap", fileext = ".html")
+      
+      p <- correlation_heatmap_reactive()
+      
+      p$width <- input$correlation_heatmap_width
+      p$height <- input$correlation_heatmap_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "correlation_heatmap_width", value = 1000)
+      updateNumericInput(session, "correlation_heatmap_height", value = 1000)
+      
+    }
+    
+  )
   
   #12. Summary - barplot of changing complexes, according to set thresholds (FC, noise)
   
   output$summary_barplot <- renderPlotly({
+    
+    req(summary_barplot_reactive())
+    return(summary_barplot_reactive())
+    
+  })
+  
+  #Reactive summary barplot.
+  summary_barplot_reactive <- reactive({
+    
     req(data$f_db_farms, data$no_cond)
     regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
+    
   })
+  
+  #12.1 Download summary barplot in PDF
+  #Create the download UI
+  output$summary_barplot_download_cui <- renderUI({
+    
+    req(summary_barplot_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("summary_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("summary_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("summary_barplot_download","Download Figure")),
+           bsTooltip("summary_barplot_download", title = "Choose the width and height and download the above co-expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the summary barplot in PDF format.
+  output$summary_barplot_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("SummaryBarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      temp_name <- tempfile(pattern = "summaryBarplot", fileext = ".html")
+      
+      p <- summary_barplot_reactive()
+      
+      p$width <- input$summary_barplot_width
+      p$height <- input$summary_barplot_height
+      
+      htmlwidgets::saveWidget(p, temp_name)
+      
+      webshot::webshot(url = temp_name, file = file)
+      
+      unlink(temp_name)
+      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      
+      updateNumericInput(session, "summary_barplot_width", value = 1000)
+      updateNumericInput(session, "summary_barplot_height", value = 1000)
+      
+    }
+    
+  )
+  
   #13. Summary - top 5 table
   output$changing_table <- renderDataTable({
     req(data$f_db_farms, input$summary_cond)
