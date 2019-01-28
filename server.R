@@ -974,6 +974,7 @@ function(input,output,session){
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
+    print("enter multiline")
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
     validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
@@ -983,6 +984,7 @@ function(input,output,session){
                                          scale = input$multiline_scale)
     req(data$multiline_plot$plot)
     data$multiline_plot$plot
+
 
   })
   
@@ -1034,6 +1036,7 @@ function(input,output,session){
   #4. Single subunits expression barplot
   output$expression_barplot <- renderPlotly({
     
+    validate(need(input$node_clicked %in% data$f_stats$absolute_df[,1], "Please click on a protein in the Protein complex visualization panel"))
     req(expression_barplot_reactive())
     return(expression_barplot_reactive())
     

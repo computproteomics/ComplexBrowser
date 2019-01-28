@@ -756,7 +756,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
                                                  'hoverClosestCartesian',
                                                  'toggleSpikelines'))
   if(no_subunits == 1){
-    return(list(plot=p))
+    return(list(plot=p, subunits_names = present_subunits, index_vector = index_vector))
   }
   for(protein in 2:no_subunits){
     p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "markers+lines", name = present_subunits[protein])
