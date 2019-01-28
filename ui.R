@@ -58,6 +58,8 @@ sidebar <- dashboardSidebar(
                                             label = "Load example", 
                                             width = "220px", 
                                             icon = icon("upload")),
+                               bsTooltip(id= "load_example",
+title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Reveals Dynamic Signaling Networks and Bioenergetics Pathways Underlying T Cell Activation</i> Immunity, 2017 "),
                                actionButton(inputId = "run_QC", 
                                             label = "Run QC", 
                                             width = "220px", 
@@ -256,7 +258,7 @@ body <- dashboardBody(
                 tabPanel(
                   title = "Subunits expression profiles",
                   div(style="width: 300px;",
-                    selectInput(inputId = "multiline_scale", label = "Select value to plot on Y axis", choices = c("zScore", "Log2 Intensity"), selected = "Log2 Intensity")),
+                      selectInput(inputId = "multiline_scale", label = "Select value to plot on Y axis", choices = c("zScore", "Log2 Intensity"), selected = "Log2 Intensity")),
                   tags$hr(style = "height:10px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
                   br(),
                   plotlyOutput("multiline_plot", height = "500px"),
@@ -288,8 +290,8 @@ body <- dashboardBody(
                   uiOutput("Complex_correlation_download_cui")),
                 tabPanel(title = "Complex information",
                          DT::dataTableOutput("complex_information", height = 500)
-                        )
-                )),
+                )
+              )),
             fluidRow(
               tabBox(
                 tabPanel(
