@@ -297,11 +297,11 @@ function(input,output,session){
                             caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
                                                               'Table 1: ', htmltools::em('User data with calculated statistics 
                                                                                          and changes in protein expression ')))})
-            }
+          }
           
-          })
+        })
       }
-      }
+    }
   )
   
   
@@ -975,12 +975,15 @@ function(input,output,session){
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
+    validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
                                          stats = data$f_stats,
                                          row = input$user_complexes_rows_selected,
                                          no_cond = data$no_cond,
                                          scale = input$multiline_scale)
+    req(data$multiline_plot$plot)
     data$multiline_plot$plot
+
   })
   
   #3.1 Download multiline plot
@@ -1033,7 +1036,7 @@ function(input,output,session){
     
     req(expression_barplot_reactive())
     return(expression_barplot_reactive())
-
+    
   })
   
   #Reactive single subunits expression barplot
@@ -1044,8 +1047,9 @@ function(input,output,session){
     if(!(input$node_clicked %in% data$f_stats$absolute_df[,1])){
       return(NULL)
     }
-    my_plot <- expressionBarplot(as.character(input$node_clicked), f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
-    
+    if(!is.null(data$f_stats)) {
+      my_plot <- expressionBarplot(as.character(input$node_clicked), f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
+    }
   })
   
   #4.1 Download single subunits expression barplot
@@ -1190,16 +1194,16 @@ function(input,output,session){
       complex_df <- corum_prepared[row,]
       complex_df <- complex_df %>% 
         dplyr::select(Complex_name = Complex_Name, 
-## TODO: add more info from original CORUM download
+                      ## TODO: add more info from original CORUM download
                       Subunits = Subunits,
                       GO_terms = Gene_ontology,
                       Publication_PubMedID = PubMed.ID)
-                      # Subunits = subunits.UniProt.IDs., 
-                      # Subunits_gene = subunits.Gene.name., 
-                      # Subunits_name = subunits.Protein.name.,
-                      # FunCat_Description = FunCat.description,
-                      # Comment = Complex.comment,  
-                      # Disease  = Disease.comment)
+      # Subunits = subunits.UniProt.IDs., 
+      # Subunits_gene = subunits.Gene.name., 
+      # Subunits_name = subunits.Protein.name.,
+      # FunCat_Description = FunCat.description,
+      # Comment = Complex.comment,  
+      # Disease  = Disease.comment)
       rownames(complex_df) <- "Additional complex information"
       print(complex_df)
       complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")

@@ -357,13 +357,13 @@ filterDatabase <- function(f_data, database, organism){
   logic_v <- indicator_v > 0
   database <- database[logic_v,]
   if (nrow(database) > 0)  {
-  rownames(database) <- 1:length(database[,1])
-  #Number of quantified subunits
-  NQS <- sapply(database$Subunits, function(x) sum(x %in% f_data[,1]))
-  Coverage <- (NQS/database$NUS)*100
-  database <- cbind(database,NQS, Coverage = round(Coverage, 2))
-  database <- database[,c(1,2,4, 8, 9,5:7)]
-  return(database)
+    rownames(database) <- 1:length(database[,1])
+    #Number of quantified subunits
+    NQS <- sapply(database$Subunits, function(x) sum(x %in% f_data[,1]))
+    Coverage <- (NQS/database$NUS)*100
+    database <- cbind(database,NQS, Coverage = round(Coverage, 2))
+    database <- database[,c(1,2,4, 8, 9,5:7)]
+    return(database)
   } else {
     return(NULL)
   }
@@ -756,7 +756,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
                                                  'hoverClosestCartesian',
                                                  'toggleSpikelines'))
   if(no_subunits == 1){
-    return(p)
+    return(list(plot=p))
   }
   for(protein in 2:no_subunits){
     p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "markers+lines", name = present_subunits[protein])
@@ -772,40 +772,42 @@ concatinateSubunits <- function(filtered_database){
 
 #5. Log2(R), mean normalized (row-wise) heat map with custom colour palette
 plotComplexHeatmap <- function(names_vector, index_vector, stats, no_cond, distance_measure, agg_method, p=2){
-  expr_array <- stats$log2_means[index_vector,]
+  expr_array <- stats$log2_means[index_vector,,drop=F]
   expr_array[is.na(expr_array)] <- 0
   norm_expr_array <- round(t(apply(expr_array, 1, function(x) x-mean(x, na.rm = TRUE))),4)
-  rownames(norm_expr_array) <- names_vector
-  colnames(norm_expr_array) <- paste0("Norm. log2(R) C", 1:no_cond)
-  if(distance_measure != "minkowski"){
-    return(list(heatmap = heatmaply::heatmaply(norm_expr_array, 
-                                               dist_method = distance_measure, 
-                                               hclust_method = agg_method,
-                                               Colv = FALSE,
-                                               xlab = "Condition",
-                                               ylab = "ProteinID",
-                                               main = "Protein expression heatmap - normalized mean log2 intensities",
-                                               fontsize_row = 6,
-                                               fontsize_col = 6,
-                                               margins = c(80,80,NA,0),
-                                               col = cool_warm), expr_array = expr_array
-    ))
-  }
-  else{
-    row_dend  <- expr_array %>% 
-      dist(method = "minkowski", p = p) %>% 
-      hclust %>% as.dendrogram
-    return(list(heatmap = heatmaply::heatmaply(norm_expr_array, 
-                                               hclust_method = agg_method,
-                                               Colv = FALSE,
-                                               Rowv = row_dend,
-                                               xlab = "Condition",
-                                               ylab = "ProteinID",
-                                               main = "Protein expression heatmap - normalized mean log2 intensities",
-                                               fontsize_row = 6,
-                                               fontsize_col = 6,
-                                               margins = c(80,80,NA,0),
-                                               col = cool_warm, expr_array = expr_array)))
+  if (length(expr_array)>0) {
+    rownames(norm_expr_array) <- names_vector
+    colnames(norm_expr_array) <- paste0("Norm. log2(R) C", 1:no_cond)
+    if(distance_measure != "minkowski"){
+      return(list(heatmap = heatmaply::heatmaply(norm_expr_array, 
+                                                 dist_method = distance_measure, 
+                                                 hclust_method = agg_method,
+                                                 Colv = FALSE,
+                                                 xlab = "Condition",
+                                                 ylab = "ProteinID",
+                                                 main = "Protein expression heatmap - normalized mean log2 intensities",
+                                                 fontsize_row = 6,
+                                                 fontsize_col = 6,
+                                                 margins = c(80,80,NA,0),
+                                                 col = cool_warm), expr_array = expr_array
+      ))
+    }
+    else{
+      row_dend  <- expr_array %>% 
+        dist(method = "minkowski", p = p) %>% 
+        hclust %>% as.dendrogram
+      return(list(heatmap = heatmaply::heatmaply(norm_expr_array, 
+                                                 hclust_method = agg_method,
+                                                 Colv = FALSE,
+                                                 Rowv = row_dend,
+                                                 xlab = "Condition",
+                                                 ylab = "ProteinID",
+                                                 main = "Protein expression heatmap - normalized mean log2 intensities",
+                                                 fontsize_row = 6,
+                                                 fontsize_col = 6,
+                                                 margins = c(80,80,NA,0),
+                                                 col = cool_warm, expr_array = expr_array)))
+    }
   }
 }
 
@@ -1101,7 +1103,7 @@ complexDBsummary <- function(f_db_farms, no_cond, no_rep, condition, noise_th){
 
 #15. Summary function for regulated complexes
 regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPRESSED! NOT UNDER THRESHOLD!
-  f_db_farms_fc <- f_db_farms[,-c(1:8)]
+  f_db_farms_fc <- f_db_farms[,-c(1:8),drop=F]
   f_db_farms_fc <- filter(f_db_farms_fc, Noise <= noise_th)
   up <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] > FC_th, na.rm = TRUE)
   down <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] < -FC_th, na.rm = TRUE)

@@ -48,7 +48,7 @@ sidebar <- dashboardSidebar(
               menuItem(text = "Data input and QC", 
                        tabName = "input", 
                        icon = icon("table")),
-              menuItem(text = "Analysis", 
+              menuItem(text = "Complex analysis", 
                        tabName = "analysis", 
                        icon = icon("line-chart")),
               conditionalPanel(condition = "input.sidebar_menu === 'input'",
