@@ -714,54 +714,67 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
   return(p)
 }
 
+
 #3. Complex subunits expression multiline plot
 multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity", "zScore")){
+  
   complex_name <- f_db$Complex_Name[row]
   subunits <- f_db$Subunits[[row]]
   protein_list <- stats$absolute_df[,1]
   is_in_input <- subunits %in% protein_list
   present_subunits <- subunits[is_in_input]
   no_subunits <- length(present_subunits)
-  if(no_subunits < 2){
-    return(NULL)
-  }
+
   x_sequence <- 1:no_cond
-  mx <- matrix(nrow = length(x_sequence), ncol = no_subunits)
+  
+  mx <- data.frame(matrix(nrow = length(x_sequence), ncol = no_subunits))
+  
   index_vector <- vector(mode = "numeric", length = no_subunits)
+  
   for (protein in 1:no_subunits){
+    
     index_vector[protein] <- match(present_subunits[protein], protein_list)
     if(scale == "zScore"){
+      
       mx[,protein] <- unlist(stats$zScore[index_vector[protein],])
+      
     }
     else if(scale == "Log2 Intensity"){
+      
       mx[,protein] <- unlist(stats$log2_means[index_vector[protein],])
       mx[,protein] <- mx[,protein] - mean(mx[,protein], na.rm = TRUE)
+      
     }
   }
+  
   colnames(mx) <- present_subunits
-  p <- plot_ly(x = x_sequence, 
-               y = mx[,1], 
+
+  p <- plot_ly(x = x_sequence,
+               y = mx[,1],
                type = "scatter", 
-               mode = "markers+lines", 
+               mode = "lines+markers", 
                name = present_subunits[1],
-               error_y = stats$SD_df[index_vector[1],]/(sd(stats$means_df[index_vector[1],]))) %>%
-    plotly::layout(title = complex_name,  
+               #error_y = ~list(array = stats$SD_df[index_vector[1],]/(sd(stats$means_df[index_vector[1],])), color = '#000000') # or black
+               error_y = ~list(array = stats$SD_df[index_vector[1],]/(sd(stats$means_df[index_vector[1],]))) ) %>%
+  plotly::layout(title = complex_name,  
                    yaxis = list(title = scale), 
                    xaxis = list(title = "Condition")) %>%
-    plotly::config(showLink = F, 
+  plotly::config(showLink = F, 
                    displaylogo = F, 
                    collaborate = F,
                    modeBarButtonsToRemove = list('sendDataToCloud',
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
                                                  'toggleSpikelines'))
-  if(no_subunits == 1){
-    return(list(plot=p, subunits_names = present_subunits, index_vector = index_vector))
-  }
+  
   for(protein in 2:no_subunits){
-    p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "markers+lines", name = present_subunits[protein])
+    
+    p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "lines+markers", name = present_subunits[protein])
+    
   }
+  
   return(list(plot = p, subunits_names = present_subunits, index_vector = index_vector))
+  
 }
 
 #4. Small helper - Collapse a vector to a string for better visualization in the DT cell in shiny
