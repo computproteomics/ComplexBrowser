@@ -297,11 +297,11 @@ function(input,output,session){
                             caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
                                                               'Table 1: ', htmltools::em('User data with calculated statistics 
                                                                                          and changes in protein expression ')))})
-          }
+            }
           
-        })
+          })
       }
-    }
+      }
   )
   
   
@@ -982,11 +982,12 @@ function(input,output,session){
                                          row = input$user_complexes_rows_selected,
                                          no_cond = data$no_cond,
                                          scale = input$multiline_scale)
+    
     req(data$multiline_plot$plot)
-    data$multiline_plot$plot
-
-
+    return(data$multiline_plot$plot)
+    
   })
+  
   
   #3.1 Download multiline plot
   
@@ -1131,6 +1132,7 @@ function(input,output,session){
   Complex_correlation_reactive <- reactive({
     
     req(data$f_database$NQS[input$user_complexes_rows_selected]>2)
+    req(input$Corr_C1, input$Corr_C2)
     plotComplexCorrelation(database = data$f_database,
                            row = input$user_complexes_rows_selected,
                            stats = data$f_stats,
@@ -1460,4 +1462,4 @@ function(input,output,session){
                      no_rep = data$no_rep, 
                      condition = input$summary_cond, 
                      noise_th = input$noise_th)})
-}
+    }
