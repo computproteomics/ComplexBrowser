@@ -1027,6 +1027,10 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
     subunits <- subunits[subunits %in% proteins]
     subunits_indexes <- sapply(subunits, function(x) match(x, proteins))
     probes <- log2(stats$absolute_df[subunits_indexes,-1])
+    
+    #It could be also:
+    #probes <- stats$log2_absolute_df[subunits_indexes,]
+    
     probes[(probes)==(-Inf)]<-NA
     probes <- data.frame(t(apply(probes, 1, function(x)  
       #Introduce variance if all intensities are the same
@@ -1037,13 +1041,23 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
       else{
         return(x)
       })))
+    
     FARMS <- fast.Farms(probes)
-    probes_adj <- FARMS$loadings * probes
+    
+    #Adjusted probes should be scaled by weights sum.
+    probes_adj <- (FARMS$loadings * probes)/sum(FARMS$loadings, na.rm = T)
+
     FC <- vector(mode = "numeric", length = no_cond-1)
     #Calculate ratio changes in reference to codition 1
-    FC <- sapply(2:(no_cond), function(x) {FC[x-1] <- mean(colSums(2^probes_adj[,((x-1)*no_rep+1):(x*no_rep)]), na.rm = TRUE)/mean(colSums(2^probes_adj[,1:no_rep]), na.rm = TRUE)})
-    #Transform to FC (FC = R for R>=1 or -1/R for FC < 1)
-    FC <- sapply(FC, function(x) ifelse(x>1, yes = x, no = -1/x))
+    #FC <- sapply(2:(no_cond), function(x) {FC[x-1] <- mean(colSums(2^probes_adj[,((x-1)*no_rep+1):(x*no_rep)]), na.rm = TRUE)/mean(colSums(2^probes_adj[,1:no_rep]), na.rm = TRUE)})
+    
+    #Calculate log2 FC
+    FC <- sapply(2:(no_cond), function(x) {FC[x-1] <- mean(colSums(probes_adj[,((x-1)*no_rep+1):(x*no_rep)]), na.rm = TRUE) - mean(colSums(probes_adj[,1:no_rep]), na.rm = TRUE)})
+    #Turn log2 FC to FC since the input thresholds that affect star plot and bar plot, and also regulation summary are in FC scale.
+    FC <- 2^FC
+    
+    #Transform to FC (FC = R for R>=1 or -1/R for FC < 1) 
+    FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
     noise <- FARMS$noise
     result <- c(FC, noise)
     names(result) <- c(paste0("FC C", 2:no_cond, "/C1"), "Noise")
@@ -1059,15 +1073,18 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
 }
 #13. FARMS - for database
 complexDBfarms <- function(f_database, stats, no_cond, no_rep){
-  proteins <- stats$absolute_df[,1]
+  
   indexes <- 1:length(f_database[,1])
   proteins <- stats$absolute_df[,1]
+  
   result_df <- t(sapply(indexes, function(x) complexFCfarms(f_database = f_database, 
                                                             stats = stats, 
                                                             row = x , 
                                                             proteins = proteins, 
                                                             no_cond = no_cond, 
                                                             no_rep = no_rep)))
+  
+  
   return(result_df)
 }
 #14. Text summary
