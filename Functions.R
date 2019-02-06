@@ -753,9 +753,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
                y = mx[,1],
                type = "scatter", 
                mode = "lines+markers", 
-               name = present_subunits[1],
-               #error_y = ~list(array = stats$SD_df[index_vector[1],]/(sd(stats$means_df[index_vector[1],])), color = '#000000') # or black
-               error_y = ~list(array = stats$SD_df[index_vector[1],]/(sd(stats$means_df[index_vector[1],]))) ) %>%
+               name = present_subunits[1]) %>%
   plotly::layout(title = complex_name,  
                    yaxis = list(title = scale), 
                    xaxis = list(title = "Condition")) %>%
