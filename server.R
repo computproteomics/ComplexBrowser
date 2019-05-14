@@ -87,6 +87,11 @@ function(input,output,session){
                              "Torpedo marmorata", "Xenopus laevis"),
                   selected = "Homo sapiens")}
   )
+  output$user_database <- renderUI({
+    req(input$database == "User defined database")
+    fileInput(inputId = "user_database",
+              label = "Select user defined database")
+  })
   
   #2. Numeric input, appearing only if the user want to include a sifnificance threhold in one's analysis
   output$significance_level <- renderUI(
@@ -316,10 +321,7 @@ function(input,output,session){
       withProgress(message = 'Please wait', value = NA, {
         
         data$file_indicator <- TRUE
-        # data$user_input <- readRDS("Myo_sample_BioReps_Qvalues_MSComplexR.Rds")
         data$user_input <- read.csv("Table S2_Statistics_T-cell_cut.csv")
-        # data$no_cond <- 6
-        # data$no_rep <- 3
         data$no_cond <- 4
         data$no_rep <- 2
         data$grouped <- TRUE
