@@ -855,10 +855,14 @@ function(input,output,session){
         req(data$user_input, data$stats)
         withProgress(message = 'Analysing protein complexes in your data', value = 0, {
           if(input$database == "CORUM"){
-            database <- corum_prepared
+            database <<- corum_prepared
           }
           else if(input$database == "EBI Complex Portal"){
-            database <- complex_portal_prepared
+            database <<- complex_portal_prepared
+          }
+          else if(input$database == "User defined database"){
+            req(input$user_database$datapath)
+            database <<- prepareUserDB(input$user_database$datapath)
           }
           incProgress(0.1)
           index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism==input$species,]$Subunits)))

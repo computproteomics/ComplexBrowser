@@ -94,6 +94,25 @@ prepareCorumDB <- function(RDSfilename){
                          GO_terms = GO.ID,
                          PubMed.ID))
 }
+#4. Preparation of user defined database
+prepareUserDB <- function(csvFilePath){
+  db <- read.csv(csvFilePath, header = TRUE)
+  subunits_lists_v <- sapply(db$Subunits, 
+                             FUN = function(x) strsplit(as.character(x),";"))
+  NUS <- sapply(subunits_lists_v, 
+                FUN = function(x) length(x))
+  db$Subunits <- subunits_lists_v
+  db <- cbind(db,NUS)
+  return(db %>%
+           dplyr::select(ComplexID, 
+                         Complex_Name, 
+                         Organism,
+                         NUS,
+                         Subunits,
+                         GO_terms,
+                         Comment))
+}
+
 ################ ################ ################ DATA WRANGLING ################ ################ ################
 #1. Renaming and sorting the columns + transform to absolute intensities 
 renameAndSort <- function(data, 

@@ -145,8 +145,8 @@ title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Rev
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "user_database")),
                               bsTooltip(id = "user_database", 
-                                        title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, NumberOfSubnits, Subunits in a list format, GO annotation"),
-                                   
+                                        title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, Subnits (; separated, no spaces),GO_terms, Comment"),
+                        
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "species")),
                                actionButton(inputId = "run_analysis", 
