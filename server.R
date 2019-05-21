@@ -980,7 +980,6 @@ function(input,output,session){
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
-    print("enter multiline")
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
     validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
@@ -1216,7 +1215,6 @@ function(input,output,session){
       # Comment = Complex.comment,  
       # Disease  = Disease.comment)
       rownames(complex_df) <- "Additional complex information"
-      print(complex_df)
       complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
       # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
       # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
@@ -1233,12 +1231,14 @@ function(input,output,session){
                       Subunits = Subunits, 
                       # Confidence = Confidence, 
                       GO.annotations = GO_terms) 
-      print(complex_df)
       # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
         gsub(",","][",x)))), "]",collapse="")
       # complex_df$Protein_subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
+    }
+    else if(input$database == "User defined database"){
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
     }
     DT::datatable(t(complex_df),
                   options = list(scrollX = FALSE,
