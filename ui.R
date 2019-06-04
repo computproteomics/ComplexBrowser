@@ -17,6 +17,18 @@ library(webshot)
 #install.packages("htmlwidgets")
 library(htmlwidgets)
 
+# Make sure rmarkdown version is 1.8
+# remove.packages("rmarkdown")
+# library(devtools)
+# install_version("rmarkdown", version = "1.8")
+# #install.packages("glue")
+library(grid)
+library(gridExtra)
+library(lattice)
+#install.packages("cowplot")
+library(cowplot)
+
+
 #Avoid the background colour errors
 tags$script(HTML("$('body').addClass('sidebar-mini');"))
 # Interface or the top part of the aplication, dropdown menu with buttons for references

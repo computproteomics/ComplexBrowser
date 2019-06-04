@@ -9,6 +9,7 @@ function(input,output,session){
   data <- reactiveValues()
   user_input <- NULL
   data$file_indicator <- FALSE
+  normalization_type <- reactiveValues(type = NA)
   
   ################ ################ ################ DYNAMIC INTERFACE ################ ################ ################
   #Interacive user's interface elements, adjusting to the given input
@@ -213,7 +214,9 @@ function(input,output,session){
     data$stats,
     {
       req(data$no_cond)
+      
       data$QC_report <- generateQCreport(data$stats, no_cond = data$no_cond, no_rep = data$no_rep)
+      
       output$QC_report <- downloadHandler(
         #For PDF output, change this to "report.pdf"
         filename = "QCreport.pdf",
@@ -224,15 +227,24 @@ function(input,output,session){
           tempReport <- file.path(tempdir(), "QCreport.rmd")
           file.copy("QCreport.rmd", tempReport, overwrite = TRUE)
           # Set up param eters to pass to Rmd document
-          params <- list(stats = data$stats, no_cond = data$no_cond, no_rep = data$no_rep, QC_report = data$QC_report)
-          # Knit the document, passing in the `params` list, and eval it in a
-          # child of the global environment (this isolates the code in the document
-          # from the code in this app).
-          rmarkdown::render(tempReport, output_file = file,
-                            params = params,
-                            envir = new.env(parent = globalenv()))
+          params <- list(stats = data$stats, no_cond = data$no_cond, no_rep = data$no_rep, 
+                         QC_report = data$QC_report, log = input$log2, normalization = normalization_type$type,
+                         file = input$in_file)
+          
+          shiny::withProgress(message = "Quality Control Report: ", min = 0, max = 12, value = 0,{
+            
+            # Knit the document, passing in the `params` list, and eval it in a
+            # child of the global environment (this isolates the code in the document
+            # from the code in this app).
+            rmarkdown::render(tempReport, output_file = file,
+                              params = params,
+                              envir = new.env(parent = globalenv()))
+            
+            shiny::incProgress(1, detail = "DONE!")
+          })
         }
       )
+      
     })
   
   ################ ################ ################ DATA LOADING AND WRANGLING ################ ################ ################
@@ -253,6 +265,7 @@ function(input,output,session){
       if(ncol(user_input)== 1){
         return(DT::datatable(data.frame(Error = "Incorrect input format! - Check separator!")))
       }
+      
       #Make sure there are no duplicated protein IDs
       else if(sum(duplicated(user_input[,1]))!= 0){
         DT::datatable(
@@ -357,6 +370,8 @@ function(input,output,session){
   observeEvent(
     input$norm_run,
     {
+      normalization_type$type <- input$norm_technique
+      
       data$stats <- isolate(calculateStatistics(data = data$user_input, 
                                                 no_cond = data$no_cond, 
                                                 no_rep =  data$no_rep,
@@ -980,7 +995,7 @@ function(input,output,session){
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
-    print("enter multiline")
+
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
     validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
@@ -1216,7 +1231,7 @@ function(input,output,session){
       # Comment = Complex.comment,  
       # Disease  = Disease.comment)
       rownames(complex_df) <- "Additional complex information"
-      print(complex_df)
+
       complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
       # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
       # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
@@ -1233,13 +1248,19 @@ function(input,output,session){
                       Subunits = Subunits, 
                       # Confidence = Confidence, 
                       GO.annotations = GO_terms) 
-      print(complex_df)
+
       # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
         gsub(",","][",x)))), "]",collapse="")
       # complex_df$Protein_subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
+      
+    } else if(input$database == "User defined database"){
+      
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
+            
     }
+    
     DT::datatable(t(complex_df),
                   options = list(scrollX = FALSE,
                                  paging = FALSE,

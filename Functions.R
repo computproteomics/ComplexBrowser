@@ -391,26 +391,39 @@ filterDatabase <- function(f_data, database, organism){
 #9. Quality report
 generateQCreport <- function(stats, no_cond, no_rep){
   #Decide for the amount of rows/columns in R plots for the QC report
-  if(no_cond == 2){
-    r = 1
-    c = 2
+  # if(no_cond == 2){
+  #   r = 1
+  #   c = 2
+  # }
+  # else if(no_cond == 3){
+  #   r = 1
+  #   c = 3
+  # }
+  # else if(no_cond == 4){
+  #   r = 2
+  #   c = 2
+  # }
+  # else if(no_cond >4 & no_cond%%3!=0){
+  #   c = 3
+  #   r = no_cond%/%3+1
+  # }
+  # else{
+  #   c = 3
+  #   r = no_cond%/%3
+  # }
+  
+  if(no_cond < 2){
+    
+    c <- 1
+    r <- 1
+    
+  } else {
+    
+    c <- 2
+    r <- ceiling(no_cond/2)
+    
   }
-  else if(no_cond == 3){
-    r = 1
-    c = 3
-  }
-  else if(no_cond == 4){
-    r = 2
-    c = 2
-  }
-  else if(no_cond >4 & no_cond%%3!=0){
-    c = 3
-    r = no_cond%/%3+1
-  }
-  else{
-    c = 3
-    r = no_cond%/%3
-  }
+  
   # Tables - log2 values
   VAL_min <- sapply(1:no_cond, function(x) min(stats$log2_means[,x], na.rm = TRUE))
   VAL_mean <- sapply(1:no_cond, function(x) mean(stats$log2_means[,x], na.rm = TRUE))
@@ -698,13 +711,17 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
   }
   index <- match(x = proteinID, 
                  table = f_data$ProteinID)
+  abs_vals <- as.vector(stat_list$absolute_df[index,-1], mode = "numeric")
   means <- stat_list$means_df[index,]
   SDs <- stat_list$SD_df[index,]
   no_conditions <- length(means)
+  no_reps <- length(abs_vals)/no_conditions
   bar_labels <- paste("C",1:no_conditions,"")
+  abs_labels <- rep(bar_labels,each = no_reps)
   df <- data.frame(x = bar_labels, 
                    y = means, 
                    sd = SDs)
+  df1 <- data.frame(x = abs_labels, y = as.vector(abs_vals))
   #p for plot
   p <- plot_ly(data = df,
                x = ~x,
@@ -722,6 +739,12 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                                                   color = "black")),
                    xaxis = list(title = "Condition"), 
                    showlegend = FALSE) %>%
+    plotly::add_trace(data = df1,
+                      x = ~x,
+                      y = ~y,
+                      type = "scatter",
+                      color = ~x,
+                      marker = list(size = 6)) %>%
     #Adjusting icons 
     plotly::config(showLink = F, 
                    displaylogo = F, 
