@@ -753,7 +753,7 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
                                                  'toggleSpikelines'))
-  return(p)
+    return(p)
 }
 
 

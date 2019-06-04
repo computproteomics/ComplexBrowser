@@ -995,7 +995,10 @@ function(input,output,session){
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6e59e6cd1141c3f2b628e5d6a710ae9bf373125c
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
     validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
@@ -1231,7 +1234,10 @@ function(input,output,session){
       # Comment = Complex.comment,  
       # Disease  = Disease.comment)
       rownames(complex_df) <- "Additional complex information"
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6e59e6cd1141c3f2b628e5d6a710ae9bf373125c
       complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
       # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
       # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
@@ -1248,7 +1254,10 @@ function(input,output,session){
                       Subunits = Subunits, 
                       # Confidence = Confidence, 
                       GO.annotations = GO_terms) 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6e59e6cd1141c3f2b628e5d6a710ae9bf373125c
       # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
@@ -1260,7 +1269,13 @@ function(input,output,session){
       complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
             
     }
+<<<<<<< HEAD
     
+=======
+    else if(input$database == "User defined database"){
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
+    }
+>>>>>>> 6e59e6cd1141c3f2b628e5d6a710ae9bf373125c
     DT::datatable(t(complex_df),
                   options = list(scrollX = FALSE,
                                  paging = FALSE,
