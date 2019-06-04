@@ -698,13 +698,17 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
   }
   index <- match(x = proteinID, 
                  table = f_data$ProteinID)
+  abs_vals <- as.vector(stat_list$absolute_df[index,-1], mode = "numeric")
   means <- stat_list$means_df[index,]
   SDs <- stat_list$SD_df[index,]
   no_conditions <- length(means)
+  no_reps <- length(abs_vals)/no_conditions
   bar_labels <- paste("C",1:no_conditions,"")
+  abs_labels <- rep(bar_labels,each = no_reps)
   df <- data.frame(x = bar_labels, 
                    y = means, 
                    sd = SDs)
+  df1 <- data.frame(x = abs_labels, y = as.vector(abs_vals))
   #p for plot
   p <- plot_ly(data = df,
                x = ~x,
@@ -722,6 +726,12 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                                                   color = "black")),
                    xaxis = list(title = "Condition"), 
                    showlegend = FALSE) %>%
+    plotly::add_trace(data = df1,
+                      x = ~x,
+                      y = ~y,
+                      type = "scatter",
+                      color = ~x,
+                      marker = list(size = 6)) %>%
     #Adjusting icons 
     plotly::config(showLink = F, 
                    displaylogo = F, 
@@ -730,7 +740,7 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
                                                  'toggleSpikelines'))
-  return(p)
+    return(p)
 }
 
 
