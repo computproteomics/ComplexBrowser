@@ -762,7 +762,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
   
   complex_name <- f_db$Complex_Name[row]
   subunits <- f_db$Subunits[[row]]
-  protein_list <- stats$absolute_df[,1]
+  protein_list <- stats$absolute_df[, 1]
   is_in_input <- subunits %in% protein_list
   present_subunits <- subunits[is_in_input]
   no_subunits <- length(present_subunits)
@@ -776,40 +776,48 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
   for (protein in 1:no_subunits){
     
     index_vector[protein] <- match(present_subunits[protein], protein_list)
+    
     if(scale == "zScore"){
       
       mx[,protein] <- unlist(stats$zScore[index_vector[protein],])
       
-    }
-    else if(scale == "Log2 Intensity"){
+    } else if(scale == "Log2 Intensity"){
       
-      mx[,protein] <- unlist(stats$log2_means[index_vector[protein],])
-      mx[,protein] <- mx[,protein] - mean(mx[,protein], na.rm = TRUE)
+      mx[, protein] <- unlist(stats$log2_means[index_vector[protein],])
+      mx[, protein] <- mx[, protein] - mean(mx[, protein], na.rm = TRUE)
       
     }
   }
   
   colnames(mx) <- present_subunits
 
-  p <- plot_ly(x = x_sequence,
-               y = mx[,1],
-               type = "scatter", 
-               mode = "lines+markers", 
-               name = present_subunits[1]) %>%
-  plotly::layout(title = complex_name,  
-                   yaxis = list(title = scale), 
-                   xaxis = list(title = "Condition")) %>%
-  plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
-                   modeBarButtonsToRemove = list('sendDataToCloud',
-                                                 'hoverCompareCartesian',
-                                                 'hoverClosestCartesian',
-                                                 'toggleSpikelines'))
+  if(ncol(mx) >= 3){
+    
+    FARMS <- fast.Farms(probes = t(mx))
+    probes_adj <- (FARMS$loadings*mx)/sum(FARMS$loadings, na.rm = T)
+    complex_expr <- rowSums(probes_adj, na.rm = T)
+    
+  }
+
+  
+  p <- plot_ly(x = x_sequence, y = mx[,1], type = "scatter", mode = "lines+markers", name = present_subunits[1]) %>%
+               plotly::layout(title = complex_name, yaxis = list(title = scale), xaxis = list(title = "Condition")) %>%
+               plotly::config(showLink = F, displaylogo = F, collaborate = F, modeBarButtonsToRemove = list("sendDataToCloud",
+                                                                                                            "hoverCompareCartesian",
+                                                                                                            "hoverClosestCartesian",
+                                                                                                            "toggleSpikelines"))
   
   for(protein in 2:no_subunits){
     
     p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "lines+markers", name = present_subunits[protein])
+    
+  }
+  
+  if(ncol(mx) >= 3){
+    
+    p <- add_trace(p, x = x_sequence, y = complex_expr, type = "scatter", mode = "lines+markers", name = "Complex", 
+                   line = list(color = alpha("blue", 0.9), width = 4), 
+                   marker = list(color = alpha("blue", 0.9), size = 9))
     
   }
   
@@ -1097,11 +1105,14 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
     FC <- 2^FC
     
     #Transform to FC (FC = R for R>=1 or -1/R for FC < 1) 
-    FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
+    #FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
     noise <- FARMS$noise
     result <- c(FC, noise)
     names(result) <- c(paste0("FC C", 2:no_cond, "/C1"), "Noise")
     result <- round(result, 3)
+    
+    incProgress(1)
+    
     return(result)
     #### Try to figure out a way that will deal with proteins missing in all 3 replicates 
   }
@@ -1117,13 +1128,16 @@ complexDBfarms <- function(f_database, stats, no_cond, no_rep){
   indexes <- 1:length(f_database[,1])
   proteins <- stats$absolute_df[,1]
   
-  result_df <- t(sapply(indexes, function(x) complexFCfarms(f_database = f_database, 
-                                                            stats = stats, 
-                                                            row = x , 
-                                                            proteins = proteins, 
-                                                            no_cond = no_cond, 
-                                                            no_rep = no_rep)))
-  
+  withProgress(message = 'fast-FARMS', min = 0, max = length(indexes), value = 0, {
+    
+    result_df <- t(sapply(indexes, function(x) complexFCfarms(f_database = f_database, 
+                                                              stats = stats, 
+                                                              row = x , 
+                                                              proteins = proteins, 
+                                                              no_cond = no_cond, 
+                                                              no_rep = no_rep)))
+    
+  })
   
   return(result_df)
 }

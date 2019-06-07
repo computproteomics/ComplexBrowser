@@ -686,13 +686,14 @@ PC2.3 <- ggplot2::ggplot(data = pca_obj$rotation, ggplot2::aes(x = PC2, y = PC3,
                          ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
                                         axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
 
-grid.arrange(PC1.2 + ggplot2::theme(legend.position = "none"),
-             PC1.3 + ggplot2::theme(legend.position = "none"),
-             PC2.3 + ggplot2::theme(legend.position = "none"),
-             gridExtra::arrangeGrob(grobs = c(cowplot::get_legend(PC1.2)$grobs[3], 
-                                              cowplot::get_legend(PC1.2)$grobs[1],
-                                              cowplot::get_legend(PC1.2)$grobs[2]), ncol = 3, nrow = 1, widths = c(0.1 ,0.5, 0.4)),
-             nrow = 2, ncol = 2)
+gridExtra::grid.arrange(PC1.2 + ggplot2::theme(legend.position = "none"),
+                        PC1.3 + ggplot2::theme(legend.position = "none"),
+                        PC2.3 + ggplot2::theme(legend.position = "none"),
+                        gridExtra::arrangeGrob(grobs = c(cowplot::get_legend(PC1.2)$grobs[3],
+                                                         cowplot::get_legend(PC1.2)$grobs[1],
+                                                         cowplot::get_legend(PC1.2)$grobs[2]), ncol = 3, nrow = 1, widths = c(0.1 ,0.5, 0.4)),
+                        nrow = 2, ncol = 2)
+
 
 shiny::incProgress(1, detail = "PCA plot created.")
 
