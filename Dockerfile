@@ -10,7 +10,7 @@ LABEL description="Docker image of ComplexBrowser implementation on top of shiny
 RUN apt-get update && apt-get install -y libssl-dev && apt-get clean 
 
 
-RUN R -e "update.packages(ask=F);install.packages("BiocManager"); BiocManager::install(c('dplyr','plotly','networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker','shinydashboard','shinyBS','heatmaply','GGally','rmarkdown'),ask=F)"
+RUN R -e "update.packages(ask=F);install.packages("BiocManager",ask=F); BiocManager::install(c('dplyr','plotly','networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker','shinydashboard','shinyBS','heatmaply','GGally','rmarkdown'),ask=F)"
 
 RUN rm -rf /srv/shiny-server
 RUN mkdir /srv/shiny-server
