@@ -17,6 +17,19 @@ library(webshot)
 #install.packages("htmlwidgets")
 library(htmlwidgets)
 
+# Make sure rmarkdown version is 1.8
+# remove.packages("rmarkdown")
+# library(devtools)
+# install_version("rmarkdown", version = "1.8")
+# #install.packages("glue")
+library(grid)
+library(gridExtra)
+library(lattice)
+#install.packages("cowplot")
+library(cowplot)
+#install.packages("shinycssloaders")
+library(shinycssloaders)
+
 #Avoid the background colour errors
 tags$script(HTML("$('body').addClass('sidebar-mini');"))
 # Interface or the top part of the aplication, dropdown menu with buttons for references
@@ -138,10 +151,15 @@ title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Rev
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    selectInput(inputId = "database", 
                                                label = "Select database for analysis", 
-                                               choices = c("CORUM", "EBI Complex Portal"))),
+                                               choices = c("CORUM", "EBI Complex Portal","User defined database"))),
                                bsTooltip(id = "database", 
                                          title = "Which protein complex database should be used in the analysis?", 
                                          placement = "top"),
+                               div(style = "display: block;; margin:0 auto; text-align: center;",
+                                   uiOutput(outputId = "user_database")),
+                              bsTooltip(id = "user_database", 
+                                        title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, Subnits (; separated, no spaces),GO_terms, Comment"),
+                        
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "species")),
                                actionButton(inputId = "run_analysis", 
@@ -168,12 +186,12 @@ body <- dashboardBody(
                 selectInput(inputId = "norm_technique", label = "Choose normalization technique", selected = "Quantile", choices = c("Total Intensity","Mean", "Median", "Quantile"))),
             div(style="display: inline-block;vertical-align:top; width: 200px; margin: 0px 0px 0px 0px;",
                 actionButton(inputId = "norm_run", label = "Run normalization", icon = icon("bar-chart"))),
-            plotlyOutput(outputId = "input_boxplot", height = 500),
+            shinycssloaders::withSpinner(plotlyOutput(outputId = "input_boxplot", height = 500), type = 1, size = 1),
             uiOutput("input_boxplot_download_cui")
         ),
         box(title = "Missing values distribution",
             tags$hr(style = "height:33px; visibility:hidden;"),
-            plotlyOutput(outputId = "NA_barplot", height = 500),
+            shinycssloaders::withSpinner(plotlyOutput(outputId = "NA_barplot", height = 500), type = 1, size = 1),
             uiOutput("NA_barplot_download_cui")
         )
       ),
@@ -190,7 +208,7 @@ body <- dashboardBody(
             br(),
             htmlOutput("CV_mean_median"),
             br(),
-            plotlyOutput("CV_distr", height = 500), 
+            shinycssloaders::withSpinner(plotlyOutput("CV_distr", height = 500), type = 1, size = 1), 
             uiOutput("CV_distr_download_cui")),
           tabPanel(
             title = "Number of significant features",
@@ -202,7 +220,7 @@ body <- dashboardBody(
             br(),
             tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
             br(),
-            plotlyOutput("qV_distr", height = 500),
+            shinycssloaders::withSpinner(plotlyOutput("qV_distr", height = 500), type = 1, size = 1),
             uiOutput("qV_distr_download_cui")),
           tabPanel(
             title = "Volcano plot",
@@ -214,7 +232,7 @@ body <- dashboardBody(
             br(),
             tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
             br(),
-            plotlyOutput(outputId = "volcano", height = 500),
+            shinycssloaders::withSpinner(plotlyOutput(outputId = "volcano", height = 500), type = 1, size = 1),
             uiOutput("volcano_download_cui")),
           tabPanel(
             title = "PCA",
@@ -222,7 +240,7 @@ body <- dashboardBody(
             br(),
             tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
             br(),
-            plotlyOutput("pca", height = 500),
+            shinycssloaders::withSpinner(plotlyOutput("pca", height = 500), type = 1, size = 1),
             uiOutput("pca_download_cui"))
         ),
         box(
@@ -238,7 +256,7 @@ body <- dashboardBody(
           br(),
           tags$hr(style = "height:24px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
           br(),
-          plotlyOutput(outputId = "scatter", height = 500),
+          shinycssloaders::withSpinner(plotlyOutput(outputId = "scatter", height = 500), type = 1, size = 1),
           uiOutput("scatter_download_cui")))),
     ##### Tab 2 - protein complexes ######                     
     tabItem(tabName = "analysis",
@@ -251,7 +269,7 @@ body <- dashboardBody(
                 div(style="width: 300px;",
                     uiOutput("graph_condition")),
                 br(),
-                forceNetworkOutput("complex_graph"),
+                shinycssloaders::withSpinner(forceNetworkOutput("complex_graph"), type = 1, size = 1),
                 uiOutput("complex_graph_download_cui")
               ),
               tabBox(
@@ -261,7 +279,7 @@ body <- dashboardBody(
                       selectInput(inputId = "multiline_scale", label = "Select value to plot on Y axis", choices = c("zScore", "Log2 Intensity"), selected = "Log2 Intensity")),
                   tags$hr(style = "height:10px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
                   br(),
-                  plotlyOutput("multiline_plot", height = "500px"),
+                  shinycssloaders::withSpinner(plotlyOutput("multiline_plot", height = "500px"), type = 1, size = 1),
                   uiOutput("multiline_plot_download_cui")
                 ),
                 tabPanel(
@@ -273,7 +291,7 @@ body <- dashboardBody(
                             placement = "top"),
                   uiOutput("uniprot"),
                   br(),
-                  plotlyOutput("expression_barplot", height = "410px"),
+                  shinycssloaders::withSpinner(plotlyOutput("expression_barplot", height = "410px"), type = 1, size = 1),
                   uiOutput("expression_barplot_download_cui"),
                   DT::dataTableOutput("fc_table"),
                   DT::dataTableOutput("qValue_table")),
@@ -286,7 +304,7 @@ body <- dashboardBody(
                       uiOutput(outputId = "Corr_C2")),
                   br(),
                   br(),
-                  plotlyOutput(outputId = "Complex_correlation", height = 500),
+                  shinycssloaders::withSpinner(plotlyOutput(outputId = "Complex_correlation", height = 500), type = 1, size = 1),
                   uiOutput("Complex_correlation_download_cui")),
                 tabPanel(title = "Complex information",
                          DT::dataTableOutput("complex_information", height = 500)
@@ -320,7 +338,7 @@ body <- dashboardBody(
                   div(style="display: inline-block;vertical-align:top; width: 200px; margin: 10px 0px 0px 0px;",
                       uiOutput(outputId = "minkowski_p")),
                   br(),
-                  plotlyOutput(outputId = "expression_heatmap", height = 500),
+                  shinycssloaders::withSpinner(plotlyOutput(outputId = "expression_heatmap", height = 500), type = 1, size = 1),
                   uiOutput("expression_heatmap_download_cui")),
                 tabPanel(
                   title = "Protein correlation heatmap",
@@ -330,14 +348,13 @@ body <- dashboardBody(
                                   label = "Correlation measure",
                                   choices = c("pearson", "spearman", "kendall"),
                                   selected = "pearson")),
-                  plotlyOutput(outputId = "correlation_heatmap", 
-                               height = 500),
+                  shinycssloaders::withSpinner(plotlyOutput(outputId = "correlation_heatmap", height = 500), type = 1, size = 1),
                   uiOutput("correlation_heatmap_download_cui"))),
               tabBox(
                 tabPanel(
                   title = "Summary",
                   div(style="display: inline-block;vertical-align:top; width: 1px;", tags$hr(style = "height:65px; visibility:hidden;")),
-                  plotlyOutput("summary_barplot", height = 500),
+                  shinycssloaders::withSpinner(plotlyOutput("summary_barplot", height = 500), type = 1, size = 1),
                   uiOutput("summary_barplot_download_cui")
                 ),
                 tabPanel(
@@ -349,4 +366,3 @@ body <- dashboardBody(
                 ))))))
 
 dashboardPage(header,sidebar,body, skin = "black")
-
