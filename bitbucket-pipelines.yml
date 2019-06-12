@@ -14,7 +14,7 @@ pipelines:
           - export DOCKER_HUB_USERNAME=veitveit
           - export DOCKER_HUB_PASSWORD=$dockerpasswd
           - export IMAGE_NAME=veitveit/complexbrowser:$BITBUCKET_COMMIT
-          - docker login --username $DOCKER_HUB_USERNAME --password $dockerpasswd
+          - docker login --username veitveit --password $dockerpasswd
 
           # build the Docker image (this will use the Dockerfile in the root of the repo)
           #- docker build -t $IMAGE_NAME .
