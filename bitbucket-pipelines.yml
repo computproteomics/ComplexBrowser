@@ -13,9 +13,7 @@ pipelines:
           # Set $DOCKER_HUB_USERNAME and $DOCKER_HUB_PASSWORD as environment variables in repository settings
           - export DOCKER_HUB_USERNAME=veitveit
           - export DOCKER_HUB_PASSWORD=$dockerpasswd
-          - echo $dockerpasswd
           - export IMAGE_NAME=veitveit/complexbrowser:$BITBUCKET_COMMIT
-          - echo $IMAGE_NAME
 
           # build the Docker image (this will use the Dockerfile in the root of the repo)
           - docker build -t $IMAGE_NAME .
