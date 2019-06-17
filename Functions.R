@@ -94,6 +94,25 @@ prepareCorumDB <- function(RDSfilename){
                          GO_terms = GO.ID,
                          PubMed.ID))
 }
+#4. Preparation of user defined database
+prepareUserDB <- function(csvFilePath){
+  db <- read.csv(csvFilePath, header = TRUE)
+  subunits_lists_v <- sapply(db$Subunits, 
+                             FUN = function(x) strsplit(as.character(x),";"))
+  NUS <- sapply(subunits_lists_v, 
+                FUN = function(x) length(x))
+  db$Subunits <- subunits_lists_v
+  db <- cbind(db,NUS)
+  return(db %>%
+           dplyr::select(ComplexID, 
+                         Complex_Name, 
+                         Organism,
+                         NUS,
+                         Subunits,
+                         GO_terms,
+                         Comment))
+}
+
 ################ ################ ################ DATA WRANGLING ################ ################ ################
 #1. Renaming and sorting the columns + transform to absolute intensities 
 renameAndSort <- function(data, 
@@ -372,26 +391,39 @@ filterDatabase <- function(f_data, database, organism){
 #9. Quality report
 generateQCreport <- function(stats, no_cond, no_rep){
   #Decide for the amount of rows/columns in R plots for the QC report
-  if(no_cond == 2){
-    r = 1
-    c = 2
+  # if(no_cond == 2){
+  #   r = 1
+  #   c = 2
+  # }
+  # else if(no_cond == 3){
+  #   r = 1
+  #   c = 3
+  # }
+  # else if(no_cond == 4){
+  #   r = 2
+  #   c = 2
+  # }
+  # else if(no_cond >4 & no_cond%%3!=0){
+  #   c = 3
+  #   r = no_cond%/%3+1
+  # }
+  # else{
+  #   c = 3
+  #   r = no_cond%/%3
+  # }
+  
+  if(no_cond < 2){
+    
+    c <- 1
+    r <- 1
+    
+  } else {
+    
+    c <- 2
+    r <- ceiling(no_cond/2)
+    
   }
-  else if(no_cond == 3){
-    r = 1
-    c = 3
-  }
-  else if(no_cond == 4){
-    r = 2
-    c = 2
-  }
-  else if(no_cond >4 & no_cond%%3!=0){
-    c = 3
-    r = no_cond%/%3+1
-  }
-  else{
-    c = 3
-    r = no_cond%/%3
-  }
+  
   # Tables - log2 values
   VAL_min <- sapply(1:no_cond, function(x) min(stats$log2_means[,x], na.rm = TRUE))
   VAL_mean <- sapply(1:no_cond, function(x) mean(stats$log2_means[,x], na.rm = TRUE))
@@ -679,13 +711,17 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
   }
   index <- match(x = proteinID, 
                  table = f_data$ProteinID)
+  abs_vals <- as.vector(stat_list$absolute_df[index,-1], mode = "numeric")
   means <- stat_list$means_df[index,]
   SDs <- stat_list$SD_df[index,]
   no_conditions <- length(means)
+  no_reps <- length(abs_vals)/no_conditions
   bar_labels <- paste("C",1:no_conditions,"")
+  abs_labels <- rep(bar_labels,each = no_reps)
   df <- data.frame(x = bar_labels, 
                    y = means, 
                    sd = SDs)
+  df1 <- data.frame(x = abs_labels, y = as.vector(abs_vals))
   #p for plot
   p <- plot_ly(data = df,
                x = ~x,
@@ -703,6 +739,12 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                                                   color = "black")),
                    xaxis = list(title = "Condition"), 
                    showlegend = FALSE) %>%
+    plotly::add_trace(data = df1,
+                      x = ~x,
+                      y = ~y,
+                      type = "scatter",
+                      color = ~x,
+                      marker = list(size = 6)) %>%
     #Adjusting icons 
     plotly::config(showLink = F, 
                    displaylogo = F, 
@@ -711,7 +753,7 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
                                                  'toggleSpikelines'))
-  return(p)
+    return(p)
 }
 
 
@@ -720,7 +762,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
   
   complex_name <- f_db$Complex_Name[row]
   subunits <- f_db$Subunits[[row]]
-  protein_list <- stats$absolute_df[,1]
+  protein_list <- stats$absolute_df[, 1]
   is_in_input <- subunits %in% protein_list
   present_subunits <- subunits[is_in_input]
   no_subunits <- length(present_subunits)
@@ -734,40 +776,48 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
   for (protein in 1:no_subunits){
     
     index_vector[protein] <- match(present_subunits[protein], protein_list)
+    
     if(scale == "zScore"){
       
       mx[,protein] <- unlist(stats$zScore[index_vector[protein],])
       
-    }
-    else if(scale == "Log2 Intensity"){
+    } else if(scale == "Log2 Intensity"){
       
-      mx[,protein] <- unlist(stats$log2_means[index_vector[protein],])
-      mx[,protein] <- mx[,protein] - mean(mx[,protein], na.rm = TRUE)
+      mx[, protein] <- unlist(stats$log2_means[index_vector[protein],])
+      mx[, protein] <- mx[, protein] - mean(mx[, protein], na.rm = TRUE)
       
     }
   }
   
   colnames(mx) <- present_subunits
 
-  p <- plot_ly(x = x_sequence,
-               y = mx[,1],
-               type = "scatter", 
-               mode = "lines+markers", 
-               name = present_subunits[1]) %>%
-  plotly::layout(title = complex_name,  
-                   yaxis = list(title = scale), 
-                   xaxis = list(title = "Condition")) %>%
-  plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
-                   modeBarButtonsToRemove = list('sendDataToCloud',
-                                                 'hoverCompareCartesian',
-                                                 'hoverClosestCartesian',
-                                                 'toggleSpikelines'))
+  if(ncol(mx) >= 3){
+    
+    FARMS <- fast.Farms(probes = t(mx))
+    probes_adj <- (FARMS$loadings*mx)/sum(FARMS$loadings, na.rm = T)
+    complex_expr <- rowSums(probes_adj, na.rm = T)
+    
+  }
+
+  
+  p <- plot_ly(x = x_sequence, y = mx[,1], type = "scatter", mode = "lines+markers", name = present_subunits[1]) %>%
+               plotly::layout(title = complex_name, yaxis = list(title = scale), xaxis = list(title = "Condition")) %>%
+               plotly::config(showLink = F, displaylogo = F, collaborate = F, modeBarButtonsToRemove = list("sendDataToCloud",
+                                                                                                            "hoverCompareCartesian",
+                                                                                                            "hoverClosestCartesian",
+                                                                                                            "toggleSpikelines"))
   
   for(protein in 2:no_subunits){
     
     p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "lines+markers", name = present_subunits[protein])
+    
+  }
+  
+  if(ncol(mx) >= 3){
+    
+    p <- add_trace(p, x = x_sequence, y = complex_expr, type = "scatter", mode = "lines+markers", name = "Complex", 
+                   line = list(color = alpha("blue", 0.9), width = 4), 
+                   marker = list(color = alpha("blue", 0.9), size = 9))
     
   }
   
@@ -1055,11 +1105,14 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
     FC <- 2^FC
     
     #Transform to FC (FC = R for R>=1 or -1/R for FC < 1) 
-    FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
+    #FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
     noise <- FARMS$noise
     result <- c(FC, noise)
     names(result) <- c(paste0("FC C", 2:no_cond, "/C1"), "Noise")
     result <- round(result, 3)
+    
+    incProgress(1)
+    
     return(result)
     #### Try to figure out a way that will deal with proteins missing in all 3 replicates 
   }
@@ -1075,13 +1128,16 @@ complexDBfarms <- function(f_database, stats, no_cond, no_rep){
   indexes <- 1:length(f_database[,1])
   proteins <- stats$absolute_df[,1]
   
-  result_df <- t(sapply(indexes, function(x) complexFCfarms(f_database = f_database, 
-                                                            stats = stats, 
-                                                            row = x , 
-                                                            proteins = proteins, 
-                                                            no_cond = no_cond, 
-                                                            no_rep = no_rep)))
-  
+  withProgress(message = 'fast-FARMS', min = 0, max = length(indexes), value = 0, {
+    
+    result_df <- t(sapply(indexes, function(x) complexFCfarms(f_database = f_database, 
+                                                              stats = stats, 
+                                                              row = x , 
+                                                              proteins = proteins, 
+                                                              no_cond = no_cond, 
+                                                              no_rep = no_rep)))
+    
+  })
   
   return(result_df)
 }

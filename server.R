@@ -9,6 +9,7 @@ function(input,output,session){
   data <- reactiveValues()
   user_input <- NULL
   data$file_indicator <- FALSE
+  normalization_type <- reactiveValues(type = NA)
   
   ################ ################ ################ DYNAMIC INTERFACE ################ ################ ################
   #Interacive user's interface elements, adjusting to the given input
@@ -87,6 +88,11 @@ function(input,output,session){
                              "Torpedo marmorata", "Xenopus laevis"),
                   selected = "Homo sapiens")}
   )
+  output$user_database <- renderUI({
+    req(input$database == "User defined database")
+    fileInput(inputId = "user_database",
+              label = "Select user defined database")
+  })
   
   #2. Numeric input, appearing only if the user want to include a sifnificance threhold in one's analysis
   output$significance_level <- renderUI(
@@ -208,7 +214,9 @@ function(input,output,session){
     data$stats,
     {
       req(data$no_cond)
+      
       data$QC_report <- generateQCreport(data$stats, no_cond = data$no_cond, no_rep = data$no_rep)
+      
       output$QC_report <- downloadHandler(
         #For PDF output, change this to "report.pdf"
         filename = "QCreport.pdf",
@@ -219,15 +227,24 @@ function(input,output,session){
           tempReport <- file.path(tempdir(), "QCreport.rmd")
           file.copy("QCreport.rmd", tempReport, overwrite = TRUE)
           # Set up param eters to pass to Rmd document
-          params <- list(stats = data$stats, no_cond = data$no_cond, no_rep = data$no_rep, QC_report = data$QC_report)
-          # Knit the document, passing in the `params` list, and eval it in a
-          # child of the global environment (this isolates the code in the document
-          # from the code in this app).
-          rmarkdown::render(tempReport, output_file = file,
-                            params = params,
-                            envir = new.env(parent = globalenv()))
+          params <- list(stats = data$stats, no_cond = data$no_cond, no_rep = data$no_rep, 
+                         QC_report = data$QC_report, log = input$log2, normalization = normalization_type$type,
+                         file = input$in_file)
+          
+          shiny::withProgress(message = "Quality Control Report: ", min = 0, max = 12, value = 0,{
+            
+            # Knit the document, passing in the `params` list, and eval it in a
+            # child of the global environment (this isolates the code in the document
+            # from the code in this app).
+            rmarkdown::render(tempReport, output_file = file,
+                              params = params,
+                              envir = new.env(parent = globalenv()))
+            
+            shiny::incProgress(1, detail = "DONE!")
+          })
         }
       )
+      
     })
   
   ################ ################ ################ DATA LOADING AND WRANGLING ################ ################ ################
@@ -235,39 +252,51 @@ function(input,output,session){
   #1. Read in file
   output$input_file <- renderDataTable({
     expr = {
-      data$input <- input$in_file
-      if(is.null(data$input)){
-        return(NULL)
-      }
-      user_input <<- read.table(file = data$input$datapath,
-                                header = TRUE, 
-                                stringsAsFactors = FALSE, 
-                                sep = ifelse(input$separator=="tab", yes = "\t", no = input$separator),
-                                dec = input$decimal, 
-                                na.strings = c("NA","NaN"))
-      if(ncol(user_input)== 1){
-        return(DT::datatable(data.frame(Error = "Incorrect input format! - Check separator!")))
-      }
-      #Make sure there are no duplicated protein IDs
-      else if(sum(duplicated(user_input[,1]))!= 0){
-        DT::datatable(
-          data.frame(Error = "Incorrect input format! - Check file for duplicate protein IDs!"))}
+      shiny::withProgress(message = "Input data:", min = 0, max = 2, detail = "Loading data.",value = 1, {
+        
+        data$input <- input$in_file
+        if(is.null(data$input)){
+          return(NULL)
+        }
+        user_input <<- read.table(file = data$input$datapath,
+                                  header = TRUE, 
+                                  stringsAsFactors = FALSE, 
+                                  sep = ifelse(input$separator=="tab", yes = "\t", no = input$separator),
+                                  dec = input$decimal, 
+                                  na.strings = c("NA","NaN"))
+        if(ncol(user_input)== 1){
+          return(DT::datatable(data.frame(Error = "Incorrect input format! - Check separator!")))
+        }
+        
+        #Make sure there are no duplicated protein IDs
+        else if(sum(duplicated(user_input[,1]))!= 0){
+          DT::datatable(
+            data.frame(Error = "Incorrect input format! - Check file for duplicate protein IDs!"))}
+        
+        shiny::incProgress(1, detail = "Data loaded.")
+      })
     }})
   observeEvent(
     input$run_QC,
     {
       if (!is.null(user_input)) {
-        withProgress(message = 'Please wait', value = NA, {
+        shiny::withProgress(message = "Quality control:", min = 0, max = 4, detail = "Preparing data.",value = 1, {
           
           if(ncol(user_input)!= (1+(input$no_conditions*input$no_replicates)) & 
              ncol(user_input)!= (input$no_conditions*(input$no_replicates+1))){
             
             output$input_file <- renderDataTable({
               DT::datatable(data.frame(Error = "Incorrect number of columns! It should be equal to C*R+1 or C*(R+1)"))})
+            
+            shiny::incProgress(3, detail = "Error!")
+            
           }
           else if(ncol(user_input) == (1+(input$no_conditions*input$no_replicates)) & input$statistics) {
             output$input_file <- renderDataTable({
               DT::datatable(data.frame(Error = "There are no additional columns q-values from statistical testing with this number of replicates and conditions"))})
+            
+            shiny::incProgress(3, detail = "Error!")
+            
           }
           else{
             data$user_input <- renameAndSort(data = user_input, 
@@ -288,6 +317,8 @@ function(input,output,session){
                                               normalize = NULL,
                                               design = input$design)
             
+            shiny::incProgress(1, detail = "Statistics calculated.")
+            
             #To preserve the column names a separate cbind for matrices and data frames is needed
             data$input_stats_merged <-  isolate(cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11])))
             data$no_proteins <- length(data$user_input[,1])
@@ -298,6 +329,9 @@ function(input,output,session){
                                                               'Table 1: ', htmltools::em('User data with calculated statistics 
                                                                                          and changes in protein expression ')))})
             }
+            
+            shiny::incProgress(1, detail = "Data rendered.")
+            shiny::setProgress(message = "Quality control: Finished", value = 4)
           
           })
       }
@@ -305,21 +339,14 @@ function(input,output,session){
   )
   
   
-  
-  
-  
-  
   #2. Event handling - load example data set
   observeEvent(
     input$load_example,
     {
-      withProgress(message = 'Please wait', value = NA, {
+      shiny::withProgress(message = "Example data:", min = 0, max = 2, detail = "Loading example data.",value = 1, {
         
         data$file_indicator <- TRUE
-        # data$user_input <- readRDS("Myo_sample_BioReps_Qvalues_MSComplexR.Rds")
         data$user_input <- read.csv("Table S2_Statistics_T-cell_cut.csv")
-        # data$no_cond <- 6
-        # data$no_rep <- 3
         data$no_cond <- 4
         data$no_rep <- 2
         data$grouped <- TRUE
@@ -348,6 +375,9 @@ function(input,output,session){
                                                            'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
           
         })
+      
+        shiny::incProgress(1, detail = "Data loaded.")
+        
       })
     })
   
@@ -355,22 +385,33 @@ function(input,output,session){
   observeEvent(
     input$norm_run,
     {
-      data$stats <- isolate(calculateStatistics(data = data$user_input, 
-                                                no_cond = data$no_cond, 
-                                                no_rep =  data$no_rep,
-                                                qValues = input$statistics,
-                                                normalize = input$norm_technique,
-                                                design = input$design))
-      #To preserve the column names a separate cbind for matrices and data frames is needed
-      data$input_stats_norm_merged <-  cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
-      output$input_file <- renderDataTable({
-        DT::datatable(data$input_stats_norm_merged,
-                      options = list(scrollX = TRUE),
-                      caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
-                                                        'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
+      shiny::withProgress(message = "Normalization:", min = 0, max = 4, detail = "Preparing data.",value = 1, {
+        
+        normalization_type$type <- input$norm_technique
+        
+        data$stats <- isolate(calculateStatistics(data = data$user_input, 
+                                                  no_cond = data$no_cond, 
+                                                  no_rep =  data$no_rep,
+                                                  qValues = input$statistics,
+                                                  normalize = input$norm_technique,
+                                                  design = input$design))
+        
+        shiny::incProgress(1, detail = "Calculating.")
+        
+        #To preserve the column names a separate cbind for matrices and data frames is needed
+        data$input_stats_norm_merged <-  cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
+        output$input_file <- renderDataTable({
+          DT::datatable(data$input_stats_norm_merged,
+                        options = list(scrollX = TRUE),
+                        caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
+                                                          'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
+        })
+        
+        shiny::incProgress(1, detail = "Data rendered.")
+        shiny::setProgress(message = "Normalization: Finished", value = 4)
+        
       })
     })
-  
   
   
   ################ ################ ################ DATA VISUALISATION ################ ################ ################
@@ -408,23 +449,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "distPlot", fileext = ".html")
-      
-      p <- data$distribution_plot$plot
-      
-      p$width <- input$input_boxplot_width
-      p$height <- input$input_boxplot_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "input_boxplot_width", value = 1000)
-      updateNumericInput(session, "input_boxplot_height", value = 1000)
-      
+      shiny::withProgress(message = "Distribution boxplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "distPlot", fileext = ".html")
+        
+        p <- data$distribution_plot$plot
+        
+        p$width <- input$input_boxplot_width
+        p$height <- input$input_boxplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "input_boxplot_width", value = 1000)
+        updateNumericInput(session, "input_boxplot_height", value = 1000)
+        
+      })
     }
     
   )
@@ -473,23 +519,27 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "naBarplot", fileext = ".html")
-      
-      p <- NA_barplot_reactive()
-      
-      p$width <- input$NA_barplot_width
-      p$height <- input$NA_barplot_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "NA_barplot_width", value = 1000)
-      updateNumericInput(session, "NA_barplot_height", value = 1000)
-      
+      shiny::withProgress(message = "Missing value barplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "naBarplot", fileext = ".html")
+        
+        p <- NA_barplot_reactive()
+        
+        p$width <- input$NA_barplot_width
+        p$height <- input$NA_barplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "NA_barplot_width", value = 1000)
+        updateNumericInput(session, "NA_barplot_height", value = 1000)
+        
+      })
     }
     
   )
@@ -528,23 +578,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "CVdistPlot", fileext = ".html")
+      shiny::withProgress(message = "CV histogram download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "CVdistPlot", fileext = ".html")
+        
+        p <- data$CV_distr$plot
+        
+        p$width <- input$CV_distr_width
+        p$height <- input$CV_distr_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "CV_distr_width", value = 1000)
+        updateNumericInput(session, "CV_distr_height", value = 1000)
       
-      p <- data$CV_distr$plot
-      
-      p$width <- input$CV_distr_width
-      p$height <- input$CV_distr_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "CV_distr_width", value = 1000)
-      updateNumericInput(session, "CV_distr_height", value = 1000)
-      
+      })
     }
     
   )
@@ -618,28 +673,31 @@ function(input,output,session){
     
     filename = function() {
       
-      paste("CorScatterHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+      paste("CorScatterPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
       
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
-      
-      p <- scatter_reactive()
-      
-      p$width <- input$scatter_width
-      p$height <- input$scatter_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "scatter_width", value = 1000)
-      updateNumericInput(session, "scatter_height", value = 1000)
-      
+      shiny::withProgress(message = "Coreelations scatter plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
+        
+        p <- scatter_reactive()
+        
+        p$width <- input$scatter_width
+        p$height <- input$scatter_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "scatter_width", value = 1000)
+        updateNumericInput(session, "scatter_height", value = 1000)
+      })
     }
     
   )
@@ -693,6 +751,7 @@ function(input,output,session){
     },
     content = function(file) {
       
+      shiny::withProgress(message = "q-Value distribution plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
       temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
       
       p <- qV_distr_reactive()
@@ -700,16 +759,19 @@ function(input,output,session){
       p$width <- input$qV_distr_width
       p$height <- input$qV_distr_height
       
+      shiny::incProgress(1, detail = "PDF rendering.")
       htmlwidgets::saveWidget(p, temp_name)
       
       webshot::webshot(url = temp_name, file = file)
       
+      shiny::incProgress(1, detail = "PDF file is ready!")
       unlink(temp_name)
       unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
       
       updateNumericInput(session, "qV_distr_width", value = 1000)
       updateNumericInput(session, "qV_distr_height", value = 1000)
       
+      })
     }
     
   )
@@ -758,23 +820,26 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "volcano", fileext = ".html")
-      
-      p <- volcano_reactive()
-      
-      p$width <- input$volcano_width
-      p$height <- input$volcano_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "volcano_width", value = 1000)
-      updateNumericInput(session, "volcano_height", value = 1000)
-      
+      shiny::withProgress(message = "Volcano plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "volcano", fileext = ".html")
+        
+        p <- volcano_reactive()
+        
+        p$width <- input$volcano_width
+        p$height <- input$volcano_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "volcano_width", value = 1000)
+        updateNumericInput(session, "volcano_height", value = 1000)
+      })
     }
     
   )
@@ -823,23 +888,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "pca", fileext = ".html")
+      shiny::withProgress(message = "Volcano plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "pca", fileext = ".html")
+        
+        p <- pca_reactive()
+        
+        p$width <- input$pca_width
+        p$height <- input$pca_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "pca_width", value = 1000)
+        updateNumericInput(session, "pca_height", value = 1000)
       
-      p <- pca_reactive()
-      
-      p$width <- input$pca_width
-      p$height <- input$pca_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "pca_width", value = 1000)
-      updateNumericInput(session, "pca_height", value = 1000)
-      
+      })
     }
     
   )
@@ -851,17 +921,21 @@ function(input,output,session){
     {
       output$user_complexes <- DT::renderDataTable({
         req(data$user_input, data$stats)
-        withProgress(message = 'Analysing protein complexes in your data', value = 0, {
+        withProgress(message = 'Analysing protein complexes in your data', min = 0, max = 4, value = 0, {
           if(input$database == "CORUM"){
-            database <- corum_prepared
+            database <<- corum_prepared
           }
           else if(input$database == "EBI Complex Portal"){
-            database <- complex_portal_prepared
+            database <<- complex_portal_prepared
           }
-          incProgress(0.1)
+          else if(input$database == "User defined database"){
+            req(input$user_database$datapath)
+            database <<- prepareUserDB(input$user_database$datapath)
+          }
+          incProgress(1, detail = "DB established.")
           index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism==input$species,]$Subunits)))
           data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
-          incProgress(0.1)
+          incProgress(1, detail = "DB search.")
           data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
           if (is.null(data$f_database)) {
             DT::datatable(data.frame(error="No complexes found! Maybe wrong species"))
@@ -869,9 +943,9 @@ function(input,output,session){
           }
           data$no_complexes <- length(data$f_database[,1])                                   
           data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
-          incProgress(0.3)
+          incProgress(1, "Complexes expression calculation.")
           data$f_db_farms <- cbind(data$f_database, complexDBfarms(f_database = data$f_database, stats = data$f_stats, no_cond = data$no_cond, no_rep = data$no_rep))
-          incProgress(0.4)
+          incProgress(1, "Data aggregation.")
           #Change a vector to string for better display (subunits)
           data$for_display <- concatinateSubunits(data$f_db_farms)
         })
@@ -952,21 +1026,26 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "star", fileext = ".html")
+      shiny::withProgress(message = "Star-graph download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "star", fileext = ".html")
+        
+        p <- data$star_graph$star_graph
+        
+        p$x$options$opacityNoHover <- T
+        p$x$options$opacity <- 1
+        p$x$options$opacityNoHover <- 1
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
       
-      p <- data$star_graph$star_graph
-      
-      p$x$options$opacityNoHover <- T
-      p$x$options$opacity <- 1
-      p$x$options$opacityNoHover <- 1
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
+      })
     }
     
   )
@@ -974,7 +1053,7 @@ function(input,output,session){
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
-    print("enter multiline")
+
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
     validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
@@ -1013,23 +1092,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "multiPlot", fileext = ".html")
+      shiny::withProgress(message = "Expression line-plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "multiPlot", fileext = ".html")
+        
+        p <- data$multiline_plot$plot
+        
+        p$width <- input$multiline_plot_width
+        p$height <- input$multiline_plot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "multiline_plot_width", value = 1000)
+        updateNumericInput(session, "multiline_plot_height", value = 1000)
       
-      p <- data$multiline_plot$plot
-      
-      p$width <- input$multiline_plot_width
-      p$height <- input$multiline_plot_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "multiline_plot_width", value = 1000)
-      updateNumericInput(session, "multiline_plot_height", value = 1000)
-      
+      })
     }
     
   )
@@ -1080,23 +1164,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+      shiny::withProgress(message = "Protein expression barplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+        
+        p <- expression_barplot_reactive()
+        
+        p$width <- input$expression_barplot_width
+        p$height <- input$expression_barplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "expression_barplot_width", value = 1000)
+        updateNumericInput(session, "expression_barplot_height", value = 1000)
       
-      p <- expression_barplot_reactive()
-      
-      p$width <- input$expression_barplot_width
-      p$height <- input$expression_barplot_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "expression_barplot_width", value = 1000)
-      updateNumericInput(session, "expression_barplot_height", value = 1000)
-      
+      })
     }
     
   )
@@ -1165,23 +1254,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+      shiny::withProgress(message = "Complex correlation plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
       
-      p <- Complex_correlation_reactive()
+        temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+        
+        p <- Complex_correlation_reactive()
+        
+        p$width <- input$Complex_correlation_width
+        p$height <- input$Complex_correlation_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "Complex_correlation_width", value = 1000)
+        updateNumericInput(session, "Complex_correlation_height", value = 1000)
       
-      p$width <- input$Complex_correlation_width
-      p$height <- input$Complex_correlation_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "Complex_correlation_width", value = 1000)
-      updateNumericInput(session, "Complex_correlation_height", value = 1000)
-      
+      })
     }
     
   )
@@ -1210,7 +1304,6 @@ function(input,output,session){
       # Comment = Complex.comment,  
       # Disease  = Disease.comment)
       rownames(complex_df) <- "Additional complex information"
-      print(complex_df)
       complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
       # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
       # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
@@ -1227,12 +1320,19 @@ function(input,output,session){
                       Subunits = Subunits, 
                       # Confidence = Confidence, 
                       GO.annotations = GO_terms) 
-      print(complex_df)
       # Disease  = Disease)
       rownames(complex_df) <- "Additional complex information"
       complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
         gsub(",","][",x)))), "]",collapse="")
       # complex_df$Protein_subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
+      
+    } else if(input$database == "User defined database"){
+      
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
+            
+    }
+    else if(input$database == "User defined database"){
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
     }
     DT::datatable(t(complex_df),
                   options = list(scrollX = FALSE,
@@ -1298,23 +1398,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "exprHeatmap", fileext = ".html")
+      shiny::withProgress(message = "Expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "exprHeatmap", fileext = ".html")
+        
+        p <- expression_heatmap_reactive()
+        
+        p$width <- input$expression_heatmap_width
+        p$height <- input$expression_heatmap_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "expression_heatmap_width", value = 1000)
+        updateNumericInput(session, "expression_heatmap_height", value = 1000)
       
-      p <- expression_heatmap_reactive()
-      
-      p$width <- input$expression_heatmap_width
-      p$height <- input$expression_heatmap_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "expression_heatmap_width", value = 1000)
-      updateNumericInput(session, "expression_heatmap_height", value = 1000)
-      
+      })
     }
     
   )
@@ -1366,23 +1471,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "coExprHeatmap", fileext = ".html")
+      shiny::withProgress(message = "Co-expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "coExprHeatmap", fileext = ".html")
+        
+        p <- correlation_heatmap_reactive()
+        
+        p$width <- input$correlation_heatmap_width
+        p$height <- input$correlation_heatmap_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "correlation_heatmap_width", value = 1000)
+        updateNumericInput(session, "correlation_heatmap_height", value = 1000)
       
-      p <- correlation_heatmap_reactive()
-      
-      p$width <- input$correlation_heatmap_width
-      p$height <- input$correlation_heatmap_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "correlation_heatmap_width", value = 1000)
-      updateNumericInput(session, "correlation_heatmap_height", value = 1000)
-      
+      })
     }
     
   )
@@ -1427,23 +1537,28 @@ function(input,output,session){
     },
     content = function(file) {
       
-      temp_name <- tempfile(pattern = "summaryBarplot", fileext = ".html")
+      shiny::withProgress(message = "Expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "summaryBarplot", fileext = ".html")
+        
+        p <- summary_barplot_reactive()
+        
+        p$width <- input$summary_barplot_width
+        p$height <- input$summary_barplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "summary_barplot_width", value = 1000)
+        updateNumericInput(session, "summary_barplot_height", value = 1000)
       
-      p <- summary_barplot_reactive()
-      
-      p$width <- input$summary_barplot_width
-      p$height <- input$summary_barplot_height
-      
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "summary_barplot_width", value = 1000)
-      updateNumericInput(session, "summary_barplot_height", value = 1000)
-      
+      })
     }
     
   )
