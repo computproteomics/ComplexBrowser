@@ -328,14 +328,14 @@ function(input,output,session){
                             caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
                                                               'Table 1: ', htmltools::em('User data with calculated statistics 
                                                                                          and changes in protein expression ')))})
-            }
-            
-            shiny::incProgress(1, detail = "Data rendered.")
-            shiny::setProgress(message = "Quality control: Finished", value = 4)
+          }
           
-          })
+          shiny::incProgress(1, detail = "Data rendered.")
+          shiny::setProgress(message = "Quality control: Finished", value = 4)
+          
+        })
       }
-      }
+    }
   )
   
   
@@ -375,7 +375,7 @@ function(input,output,session){
                                                            'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
           
         })
-      
+        
         shiny::incProgress(1, detail = "Data loaded.")
         
       })
@@ -598,7 +598,7 @@ function(input,output,session){
         
         updateNumericInput(session, "CV_distr_width", value = 1000)
         updateNumericInput(session, "CV_distr_height", value = 1000)
-      
+        
       })
     }
     
@@ -752,25 +752,25 @@ function(input,output,session){
     content = function(file) {
       
       shiny::withProgress(message = "q-Value distribution plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
-      
-      p <- qV_distr_reactive()
-      
-      p$width <- input$qV_distr_width
-      p$height <- input$qV_distr_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "qV_distr_width", value = 1000)
-      updateNumericInput(session, "qV_distr_height", value = 1000)
-      
+        temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
+        
+        p <- qV_distr_reactive()
+        
+        p$width <- input$qV_distr_width
+        p$height <- input$qV_distr_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "qV_distr_width", value = 1000)
+        updateNumericInput(session, "qV_distr_height", value = 1000)
+        
       })
     }
     
@@ -908,7 +908,7 @@ function(input,output,session){
         
         updateNumericInput(session, "pca_width", value = 1000)
         updateNumericInput(session, "pca_height", value = 1000)
-      
+        
       })
     }
     
@@ -936,6 +936,16 @@ function(input,output,session){
           index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism==input$species,]$Subunits)))
           data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
           incProgress(1, detail = "DB search.")
+          
+          ## enable buttons for sending human proteins to CoExpresso
+          if(input$species == "Homo sapiens" | input$species == "Human") {
+            shinyjs::enable("CoExpresso")
+            shinyjs::enable("CoExpressoFull")
+          } else {
+            shinyjs::disable("CoExpresso")
+            shinyjs::disable("CoExpressoFull")
+          }
+          
           data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
           if (is.null(data$f_database)) {
             DT::datatable(data.frame(error="No complexes found! Maybe wrong species"))
@@ -1044,7 +1054,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
         unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
+        
       })
     }
     
@@ -1053,7 +1063,7 @@ function(input,output,session){
   
   #3. Multiline plot
   output$multiline_plot <- renderPlotly({
-
+    
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
     validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
@@ -1112,7 +1122,7 @@ function(input,output,session){
         
         updateNumericInput(session, "multiline_plot_width", value = 1000)
         updateNumericInput(session, "multiline_plot_height", value = 1000)
-      
+        
       })
     }
     
@@ -1184,7 +1194,7 @@ function(input,output,session){
         
         updateNumericInput(session, "expression_barplot_width", value = 1000)
         updateNumericInput(session, "expression_barplot_height", value = 1000)
-      
+        
       })
     }
     
@@ -1255,7 +1265,7 @@ function(input,output,session){
     content = function(file) {
       
       shiny::withProgress(message = "Complex correlation plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
+        
         temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
         
         p <- Complex_correlation_reactive()
@@ -1274,7 +1284,7 @@ function(input,output,session){
         
         updateNumericInput(session, "Complex_correlation_width", value = 1000)
         updateNumericInput(session, "Complex_correlation_height", value = 1000)
-      
+        
       })
     }
     
@@ -1329,7 +1339,7 @@ function(input,output,session){
     } else if(input$database == "User defined database"){
       
       complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
-            
+      
     }
     else if(input$database == "User defined database"){
       complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
@@ -1418,7 +1428,7 @@ function(input,output,session){
         
         updateNumericInput(session, "expression_heatmap_width", value = 1000)
         updateNumericInput(session, "expression_heatmap_height", value = 1000)
-      
+        
       })
     }
     
@@ -1491,7 +1501,7 @@ function(input,output,session){
         
         updateNumericInput(session, "correlation_heatmap_width", value = 1000)
         updateNumericInput(session, "correlation_heatmap_height", value = 1000)
-      
+        
       })
     }
     
@@ -1510,8 +1520,9 @@ function(input,output,session){
   summary_barplot_reactive <- reactive({
     
     req(data$f_db_farms, data$no_cond)
-    regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
-    
+    if (is.matrix(data$f_db_farms)) {
+      regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
+    }
   })
   
   #12.1 Download summary barplot in PDF
@@ -1557,7 +1568,7 @@ function(input,output,session){
         
         updateNumericInput(session, "summary_barplot_width", value = 1000)
         updateNumericInput(session, "summary_barplot_height", value = 1000)
-      
+        
       })
     }
     
@@ -1577,4 +1588,34 @@ function(input,output,session){
                      no_rep = data$no_rep, 
                      condition = input$summary_cond, 
                      noise_th = input$noise_th)})
-    }
+  
+  
+  #15. Submission of human uniprot accession to CoExpresso
+  observeEvent(input$CoExpresso,{
+    url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
+    CoExpressoMessage <- toJSON(list(prot_list="TODO"))
+    print(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))          
+    
+    
+    tags$body(HTML("Testing:"),
+              tags$script(type="text/javascript",src="www/CallShiny.js"),
+              tags$input(type="button",value="send message",id="xyz",onClick=paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
+    )
+  })
+  
+  observeEvent(input$CoExpressoFull,{
+    url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
+    print(as.character(input$node_clicked))
+    CoExpressoMessage <- toJSON(list(prot_list=as.character(data$f_database$Subunits[input$user_complexes_rows_selected])))
+    print(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))          
+    
+    ## TODO: send message directly instaed of button
+    
+#   tags$body(HTML("Testing:"),
+    tags$script(type="text/javascript",src="www/CallShiny.js")
+#              tags$input(type="button",value="send message",id="xyz",onClick=paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep="")
+    session$sendCustomMessage ....
+    
+  })
+  
+}
