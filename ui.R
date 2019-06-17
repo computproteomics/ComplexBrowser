@@ -35,6 +35,7 @@ library(shinycssloaders)
 #Avoid the background colour errors
 tags$script(HTML("$('body').addClass('sidebar-mini');"))
 
+
 # Interface or the top part of the aplication, dropdown menu with buttons for references
 header <- dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
                           dropdownMenu(
@@ -174,6 +175,8 @@ sidebar <- dashboardSidebar(
 
 
 body <- dashboardBody(
+  tags$script(src = "CallShiny.js"),
+
   includeCSS("styling/ComplexBrowser.css"),
   shinyjs::useShinyjs(),
   tabItems(

@@ -1,5 +1,4 @@
-
-         var exprmatr = {};
+var exprmatr = {};
 function handleFiles(files) {
       // Check for the various File API support.
       if (window.FileReader) {
@@ -9,7 +8,7 @@ function handleFiles(files) {
       }
         getAsText(files[0]);
         
-    };
+}
 
 
 function getAsText(fileToRead) {
@@ -19,13 +18,12 @@ function getAsText(fileToRead) {
       // Handle errors load
       reader.onload = loadHandler;
       reader.onerror = errorHandler;
-    };
+}
 
-
-  function loadHandler(event) {
+function loadHandler(event) {
       var csv = event.target.result;
       processData(csv);
-    };
+}
 
     function processData(csv) {
         var allTextLines = csv.split(/\r\n|\n/);
@@ -53,7 +51,7 @@ function errorHandler(evt) {
       if(evt.target.error.name == "NotReadableError") {
           alert("Canno't read file !");
       }
-    }
+}
 
 function send_message(url,dat)
 {

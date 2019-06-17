@@ -1593,28 +1593,20 @@ function(input,output,session){
   #15. Submission of human uniprot accession to CoExpresso
   observeEvent(input$CoExpresso,{
     url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
-    CoExpressoMessage <- toJSON(list(prot_list="TODO"))
-    print(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))          
     
-    
-    tags$body(HTML("Testing:"),
-              tags$script(type="text/javascript",src="www/CallShiny.js"),
-              tags$input(type="button",value="send message",id="xyz",onClick=paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
-    )
+    complex_name <- data$f_database$Complex_Name[input$user_complexes_rows_selected]
+    subunits <- data$f_database$Subunits[[input$user_complexes_rows_selected]]
+    protein_list <- data$f_stats$absolute_df[, 1]
+    is_in_input <- subunits %in% protein_list
+    present_subunits <- subunits[is_in_input]
+    CoExpressoMessage <- toJSON(list(prot_list=present_subunits))
+    shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
   })
   
   observeEvent(input$CoExpressoFull,{
     url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
-    print(as.character(input$node_clicked))
     CoExpressoMessage <- toJSON(list(prot_list=as.character(data$f_database$Subunits[input$user_complexes_rows_selected])))
-    print(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))          
-    
-    ## TODO: send message directly instaed of button
-    
-#   tags$body(HTML("Testing:"),
-    tags$script(type="text/javascript",src="www/CallShiny.js")
-#              tags$input(type="button",value="send message",id="xyz",onClick=paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep="")
-    session$sendCustomMessage ....
+    shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
     
   })
   
