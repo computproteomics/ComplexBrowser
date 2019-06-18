@@ -73,7 +73,7 @@ message.numcond = 6;
 //var extWindow = window.open("http://computproteomics.bmb.sdu.dk/Apps/VSClustTmp/", "_blank");
 var extWindow = window.open(url, "_blank");
     
-  setTimeout(checkIfOpen, 5000);
+  setTimeout(checkIfOpen, 1000);
   
   function checkIfOpen() {
       //if(!trackedWindows[windowName])
