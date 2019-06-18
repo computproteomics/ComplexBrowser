@@ -280,11 +280,11 @@ body <- dashboardBody(
                 uiOutput("complex_graph_download_cui"),
                 actionButton("CoExpresso", "Submit proteins to CoExpresso"),
                 bsTooltip(id = "CoExpresso", 
-                          title = "Check for co-regulation in human cells for all here quantified proteins of the complex. CoExpresso is based on data from ProteomicsDB. (experimental feature)"),
+                          title = "Check for co-regulation in human cells for all here quantified proteins of the complex. This works only for human complexes! CoExpresso is based on data from ProteomicsDB. (experimental feature)"),
                 
                 actionButton("CoExpressoFull", "Submit all complex proteins to CoExpresso"),
                 bsTooltip(id = "CoExpressoFull", 
-                          title = "Check for co-regulation in human cells for all proteins of the complex. CoExpresso is based on data from ProteomicsDB. (experimental feature)")
+                          title = "Check for co-regulation in human cells for all proteins of the complex. This works only for human complexes! CoExpresso is based on data from ProteomicsDB. (experimental feature)")
               ),
               tabBox(
                 tabPanel(
