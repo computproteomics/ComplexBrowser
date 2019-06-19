@@ -10,12 +10,14 @@ library(heatmaply)
 library(GGally)
 library(rmarkdown)
 library(dplyr)
+library(jsonlite)
 #Packages needed for plotly to PDF
 #install.packages("webshot")
 library(webshot)
 #webshot::install_phantomjs()
 #install.packages("htmlwidgets")
 library(htmlwidgets)
+library(shinyjs)
 
 # Make sure rmarkdown version is 1.8
 # remove.packages("rmarkdown")
@@ -32,6 +34,8 @@ library(shinycssloaders)
 
 #Avoid the background colour errors
 tags$script(HTML("$('body').addClass('sidebar-mini');"))
+
+
 # Interface or the top part of the aplication, dropdown menu with buttons for references
 header <- dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
                           dropdownMenu(
@@ -72,7 +76,7 @@ sidebar <- dashboardSidebar(
                                             width = "220px", 
                                             icon = icon("upload")),
                                bsTooltip(id= "load_example",
-title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Reveals Dynamic Signaling Networks and Bioenergetics Pathways Underlying T Cell Activation</i> Immunity, 2017 "),
+                                         title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Reveals Dynamic Signaling Networks and Bioenergetics Pathways Underlying T Cell Activation</i> Immunity, 2017 "),
                                actionButton(inputId = "run_QC", 
                                             label = "Run QC", 
                                             width = "220px", 
@@ -157,9 +161,9 @@ title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Rev
                                          placement = "top"),
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "user_database")),
-                              bsTooltip(id = "user_database", 
-                                        title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, Subnits (; separated, no spaces),GO_terms, Comment"),
-                        
+                               bsTooltip(id = "user_database", 
+                                         title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, Subnits (; separated, no spaces),GO_terms, Comment"),
+                               
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "species")),
                                actionButton(inputId = "run_analysis", 
@@ -171,7 +175,10 @@ title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Rev
 
 
 body <- dashboardBody(
+  tags$script(src = "CallShiny.js"),
+
   includeCSS("styling/ComplexBrowser.css"),
+  shinyjs::useShinyjs(),
   tabItems(
     ##### TAB 1 - Data quality control #####
     tabItem(
@@ -270,7 +277,14 @@ body <- dashboardBody(
                     uiOutput("graph_condition")),
                 br(),
                 shinycssloaders::withSpinner(forceNetworkOutput("complex_graph"), type = 1, size = 1),
-                uiOutput("complex_graph_download_cui")
+                uiOutput("complex_graph_download_cui"),
+                actionButton("CoExpresso", "Submit proteins to CoExpresso"),
+                bsTooltip(id = "CoExpresso", 
+                          title = "Check for co-regulation in human cells for all here quantified proteins of the complex. This works only for human complexes! CoExpresso is based on data from ProteomicsDB. (experimental feature)"),
+                
+                actionButton("CoExpressoFull", "Submit all complex proteins to CoExpresso"),
+                bsTooltip(id = "CoExpressoFull", 
+                          title = "Check for co-regulation in human cells for all proteins of the complex. This works only for human complexes! CoExpresso is based on data from ProteomicsDB. (experimental feature)")
               ),
               tabBox(
                 tabPanel(
