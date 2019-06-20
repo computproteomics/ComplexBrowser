@@ -632,24 +632,17 @@ function(input,output,session){
     y <- log2(data$input_stats_merged[,(input$scatter_c2+1)])
     meth <- input$correlation_scatter
     corr <- round(cor(x, y, method = meth, use = "complete.obs"),3)
-    p<- plotly::plot_ly(x = x, y = y, type = "scatter", marker = list(size = 3.5)) %>%
-      plotly::layout(title = paste(paste(toupper(substr(meth, 1, 1)), substr(meth, 2, nchar(meth)), sep=""),
-                                   "correlation between samples", 
-                                   input$scatter_c1, 
-                                   "and", 
-                                   input$scatter_c2, 
-                                   "-", corr, 
-                                   sep =" "),
-                     xaxis = list(title = paste("Sample", input$scatter_c1)),
-                     yaxis = list(title = paste("Sample", input$scatter_c2))) %>%
-      plotly::config(showLink = F, 
-                     displaylogo = F, 
-                     collaborate = F,
-                     modeBarButtonsToRemove = list('sendDataToCloud',
-                                                   'hoverCompareCartesian',
-                                                   'hoverClosestCartesian',
-                                                   'toggleSpikelines'))
-    
+    p<- plotly::plot_ly(x = x, y = y, type = "scatter", marker = list(size = 3.5), mode = "markers") %>%
+                        plotly::layout(title = paste(paste(toupper(substr(meth, 1, 1)), substr(meth, 2, nchar(meth)), sep=""),
+                                                     "correlation between samples", input$scatter_c1, "and", input$scatter_c2, "-", corr, sep =" "),
+                                       xaxis = list(title = paste("Sample", input$scatter_c1)),
+                                       yaxis = list(title = paste("Sample", input$scatter_c2))) %>%
+                        plotly::config(showLink = F, 
+                                       displaylogo = F,
+                                       modeBarButtonsToRemove = list('sendDataToCloud',
+                                                                     'hoverCompareCartesian',
+                                                                     'hoverClosestCartesian',
+                                                                     'toggleSpikelines'))
     return(p)
     
   })
@@ -1065,7 +1058,7 @@ function(input,output,session){
   output$multiline_plot <- renderPlotly({
     
     req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
-    validate(need(!is.null(data$f_stats), "No data from statistical tests"))
+    shiny::validate(need(!is.null(data$f_stats), "No data from statistical tests"))
     data$multiline_plot <- multilinePlot(f_db = data$f_database, 
                                          stats = data$f_stats,
                                          row = input$user_complexes_rows_selected,
@@ -1129,9 +1122,9 @@ function(input,output,session){
   )
   
   #4. Single subunits expression barplot
-  output$expression_barplot <- renderPlotly({
+  output$expression_barplot <- plotly::renderPlotly({
     
-    validate(need(input$node_clicked %in% data$f_stats$absolute_df[,1], "Please click on a protein in the Protein complex visualization panel"))
+    shiny::validate(need(input$node_clicked %in% data$f_stats$absolute_df[,1], "Please click on a protein in the Protein complex visualization panel"))
     req(expression_barplot_reactive())
     return(expression_barplot_reactive())
     
@@ -1140,13 +1133,13 @@ function(input,output,session){
   #Reactive single subunits expression barplot
   expression_barplot_reactive <- reactive({
     
-    req(input$node_clicked, 
-        data$f_stats)
-    if(!(input$node_clicked %in% data$f_stats$absolute_df[,1])){
+    req(input$node_clicked, data$f_stats)
+
+    if(!(as.character(input$node_clicked) %in% as.character(data$f_stats$absolute_df[,1]))){
       return(NULL)
     }
     if(!is.null(data$f_stats)) {
-      my_plot <- expressionBarplot(as.character(input$node_clicked), f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
+      my_plot <- expressionBarplot(input$node_clicked, f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
     }
   })
   
@@ -1520,9 +1513,8 @@ function(input,output,session){
   summary_barplot_reactive <- reactive({
     
     req(data$f_db_farms, data$no_cond)
-    if (is.matrix(data$f_db_farms)) {
-      regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
-    }
+    regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
+
   })
   
   #12.1 Download summary barplot in PDF
@@ -1606,7 +1598,7 @@ function(input,output,session){
   observeEvent(input$CoExpressoFull,{
     url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
     CoExpressoMessage <- toJSON(list(prot_list=data$f_database$Subunits[input$user_complexes_rows_selected]))
-    print(data$f_database$Subunits[input$user_complexes_rows_selected])
+    #print(data$f_database$Subunits[input$user_complexes_rows_selected])
     shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
     
   })

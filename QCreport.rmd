@@ -396,12 +396,14 @@ In case of label free experiments median CV values should not exceed 15% for the
 
 #### Data insights - Q Values and Fold Changes
 
-Fold changes are calculated as:  
-$\\[30pt]$
-$R = \dfrac{I_{2}}{I_{1}}\\[30pt]$
-<!-- $~\\$ -->
-$FC = \begin{cases} R  \quad \text{ ,when } R \ge 1\\\dfrac{-1}{R} \quad \text{ ,when } R < 1\end{cases}\\[30pt]$
-<!-- $~\\$ -->
+Complex expressions after fast-FARMS summarization are in log scale.  
+$\\[10pt]$
+Log2 fold changes are calculated as:
+$\\[10pt]$
+$R = I_{2}-I_{1}\\[20pt]$
+And fold changes as:
+$\\[10pt]$
+$FC = 2^{R}\\[30pt]$
 
 ```{r qValuesPlot, eval = TRUE}
 

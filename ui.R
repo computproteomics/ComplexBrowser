@@ -20,10 +20,10 @@ library(htmlwidgets)
 library(shinyjs)
 
 # Make sure rmarkdown version is 1.8
-# remove.packages("rmarkdown")
-# library(devtools)
-# install_version("rmarkdown", version = "1.8")
-# #install.packages("glue")
+#remove.packages("rmarkdown")
+#library(devtools)
+#install_version("rmarkdown", version = "1.8")
+#install.packages("glue")
 library(grid)
 library(gridExtra)
 library(lattice)
@@ -142,9 +142,9 @@ sidebar <- dashboardSidebar(
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "significance_level")),
                                numericInput(inputId = "FC_th", label = "Fold change threshold",
-                                            min = 1, max = 3, step = 0.05, value = 1.2),
+                                            min = 1, max = 3, step = 0.05, value = 1),
                                bsTooltip(id = "FC_th", 
-                                         title = "Select threshold for considering fold changes as up(>X) / down ( < -X) regulation"),
+                                         title = "Select threshold for considering fold changes as up(>X) / down ( < X) regulation"),
                                numericInput(inputId = "noise_th",
                                             label = "Noise threshold for summary",
                                             min=0.01, max = 1, step = 0.05, value = 0.5),
