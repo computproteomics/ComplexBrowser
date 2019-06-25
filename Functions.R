@@ -1100,10 +1100,10 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
     #Calculate log2 FC
     FC <- sapply(2:(no_cond), function(x) {FC[x-1] <- mean(colSums(probes_adj[,((x-1)*no_rep+1):(x*no_rep)]), na.rm = TRUE) - mean(colSums(probes_adj[,1:no_rep]), na.rm = TRUE)})
     #Turn log2 FC to FC since the input thresholds that affect star plot and bar plot, and also regulation summary are in FC scale.
-    FC <- 2^FC
+    #FC <- 2^FC
     
-    #Transform to FC (FC = R for R>=1 or -1/R for FC < 1) 
-    #FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
+    #Transform to FC (FC = 2^logFC for R>=0 or -1/2^logFC for FC < 0) 
+    FC <- sapply(FC, function(x) ifelse(x>=0, yes = 2^x, no = -1/(2^x)))
     noise <- FARMS$noise
     result <- c(FC, noise)
     names(result) <- c(paste0("FC C", 2:no_cond, "/C1"), "Noise")
@@ -1187,8 +1187,8 @@ complexDBsummary <- function(f_db_farms, no_cond, no_rep, condition, noise_th){
 regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPRESSED! NOT UNDER THRESHOLD!
   f_db_farms_fc <- f_db_farms[,-c(1:8),drop=F]
   f_db_farms_fc <- filter(f_db_farms_fc, Noise <= noise_th)
-  up <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] >= FC_th, na.rm = TRUE)
-  down <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] < FC_th, na.rm = TRUE)
+  up <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] > FC_th, na.rm = TRUE)
+  down <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] < -FC_th, na.rm = TRUE)
   df <- data.frame(Upregulated = up, 
                    Downregulated = down, 
                    Condition = names(up))
