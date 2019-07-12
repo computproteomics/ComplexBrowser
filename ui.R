@@ -157,7 +157,7 @@ sidebar <- dashboardSidebar(
                                                label = "Select database for analysis", 
                                                choices = c("CORUM", "EBI Complex Portal","User defined database"))),
                                bsTooltip(id = "database", 
-                                         title = "Which protein complex database should be used in the analysis?", 
+                                         title = "Which protein complex database should be used in the analysis?<br/>CORUM version: 02.07.2017<br/>Complex Portal version: 03.21.2018", 
                                          placement = "top"),
                                div(style = "display: block;; margin:0 auto; text-align: center;",
                                    uiOutput(outputId = "user_database")),
@@ -279,11 +279,11 @@ body <- dashboardBody(
                 shinycssloaders::withSpinner(forceNetworkOutput("complex_graph"), type = 1, size = 1),
                 uiOutput("complex_graph_download_cui"),
                 actionButton("CoExpresso", "Submit proteins to CoExpresso"),
-                bsTooltip(id = "CoExpresso", 
+                bsTooltip(id = "CoExpresso",
                           title = "Check for co-regulation in human cells for all here quantified proteins of the complex. This works only for human complexes! CoExpresso is based on data from ProteomicsDB. (experimental feature)"),
-                
+
                 actionButton("CoExpressoFull", "Submit all complex proteins to CoExpresso"),
-                bsTooltip(id = "CoExpressoFull", 
+                bsTooltip(id = "CoExpressoFull",
                           title = "Check for co-regulation in human cells for all proteins of the complex. This works only for human complexes! CoExpresso is based on data from ProteomicsDB. (experimental feature)")
               ),
               tabBox(
@@ -294,6 +294,7 @@ body <- dashboardBody(
                   tags$hr(style = "height:10px; margin-top: 0; margin-bottom: 0; visibility:hidden;"),
                   br(),
                   shinycssloaders::withSpinner(plotlyOutput("multiline_plot", height = "500px"), type = 1, size = 1),
+                  br(),
                   uiOutput("multiline_plot_download_cui")
                 ),
                 tabPanel(

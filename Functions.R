@@ -641,7 +641,7 @@ plotD3complexGraph <- function(stats, f_db, row, condition, q_threshold, fc_thre
   subunits <- f_db$Subunits[[row]]
   #Create a color dictionary
   colours <- matrix(ncol = 6, nrow = 1)
-  colnames(colours) <- c("Complex", "Downregulated", "Upregulated", "Not quantified", "Not changing", "NA")
+  colnames(colours) <- c(paste("Complex:", as.character(f_db$Complex_Name[row], collapse = "", sep = "")), "Downregulated", "Upregulated", "Not quantified", "Not changing", "NA")
   colours[1,] <- c("#9ea4d1", "#e22200", "#25d14a", "#afafaf", "#428bca", "#f83581")
   no_subunits <- length(f_db$Subunits[[row]])
   node_names <- c(as.character(f_db$Complex_Name[row]), subunits)
@@ -674,11 +674,11 @@ plotD3complexGraph <- function(stats, f_db, row, condition, q_threshold, fc_thre
   }
   links <- data.frame(source = 1:no_subunits, target = 0, value = qValue_vector)
   #Change fold changes into grouping - 
-  node_grouping <- c("Complex", sapply(fc_vector, 
-                                       function(x) ifelse(is.na(x), yes = "NA", 
-                                                          no = ifelse(x < -fc_threhold, yes = "Downregulated" ,
-                                                                      no = ifelse(x == 0, yes = "Not quantified", 
-                                                                                  no = ifelse(x > fc_threhold, yes = "Upregulated", no = "Not changing"))))))
+  node_grouping <- c(paste("Complex: ", node_names[1], collapse = "", sep = ""), sapply(fc_vector, 
+                                                          function(x) ifelse(is.na(x), yes = "NA", 
+                                                                      no = ifelse(x < -fc_threhold, yes = "Downregulated" ,
+                                                                                  no = ifelse(x == 0, yes = "Not quantified", 
+                                                                                              no = ifelse(x > fc_threhold, yes = "Upregulated", no = "Not changing"))))))
   #Adjusting colour order
   exp_order <- unique(node_grouping)
   colour_order <- NULL
@@ -789,7 +789,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
   
   colnames(mx) <- present_subunits
 
-  if(ncol(mx) >= 3){
+  if(ncol(mx) >= 2){
     
     FARMS <- fast.Farms(probes = t(mx))
     probes_adj <- (FARMS$loadings*mx)/sum(FARMS$loadings, na.rm = T)
@@ -797,9 +797,9 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
     
   }
 
-  
   p <- plotly::plot_ly(x = x_sequence, y = mx[,1], type = "scatter", mode = "lines+markers", name = present_subunits[1]) %>%
-               plotly::layout(title = complex_name, yaxis = list(title = scale), xaxis = list(title = "Condition")) %>%
+               plotly::layout(title = complex_name, yaxis = list(title = scale), 
+                              xaxis = list(title = "Condition",ticktext = paste0("C", 1:no_cond), tickvals = 1:no_cond,tickmode = "array")) %>%
                plotly::config(showLink = F, displaylogo = F, modeBarButtonsToRemove = list("sendDataToCloud",
                                                                                            "hoverCompareCartesian",
                                                                                            "hoverClosestCartesian",
@@ -811,14 +811,14 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
     
   }
   
-  if(ncol(mx) >= 3){
+  if(ncol(mx) >= 2){
     
-    p <- plotly::add_trace(p, x = x_sequence, y = complex_expr, type = "scatter", mode = "lines+markers", name = "Complex", 
-                           line = list(color = alpha("blue", 0.9), width = 4), 
+    p <- plotly::add_trace(p, x = x_sequence, y = complex_expr, type = "scatter", mode = "lines+markers", name = "Complex",
+                           line = list(color = alpha("blue", 0.9), width = 4),
                            marker = list(color = alpha("blue", 0.9), size = 9))
     
   }
-  
+
   return(list(plot = p, subunits_names = present_subunits, index_vector = index_vector))
   
 }

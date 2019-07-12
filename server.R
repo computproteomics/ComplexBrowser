@@ -1003,6 +1003,7 @@ function(input,output,session){
                                           condition = input$star_condition, 
                                           q_threshold = data$significance_level,
                                           fc_threhold = input$FC_th)
+    
     data$star_graph$star_graph
     
   })
