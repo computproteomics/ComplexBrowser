@@ -4,8 +4,6 @@ source("Functions.R")
 # June 2018
 
 
-options(shiny.maxRequestSize=2000*1024^2)
-
 function(input,output,session){
   #Initiate empty reactiveValues object to store all data and results
   data <- reactiveValues()
