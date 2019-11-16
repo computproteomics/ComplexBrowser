@@ -10,3 +10,7 @@ You can
 - Install the app on your computer and run it e.g. in RStudio
 - Run the docker image veitveit/complexbrowser
 
+Find the latest released versions here: https://bitbucket.org/michalakw/complexbrowser/downloads/?tab=tags
+
+Or download the source code of the newest version: https://bitbucket.org/michalakw/complexbrowser/downloads/?tab=downloads
+
