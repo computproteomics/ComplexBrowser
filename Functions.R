@@ -497,8 +497,7 @@ distrPlotlyBox <- function(data, no_rep, no_cond){
                  plotly::layout(title = "Data distribution - log2(Intensity)",
                                 hovermode = "x") %>%
                  plotly::config(showLink = F, 
-                                displaylogo = F, 
-                                collaborate = F,
+                                displaylogo = F,
                                 modeBarButtonsToRemove = list('sendDataToCloud',
                                                               'hoverCompareCartesian',
                                                               'hoverClosestCartesian',
@@ -525,8 +524,7 @@ missingValuePlotly <- function(data, no_cond, no_rep){
                           hovermode = "x",
                           title = paste0("Number of missing values in each sample (", total_na, " in total out of ", all," - ",round(total_na/all*100,2),"[%])")) %>%
            plotly::config(showLink = F, 
-                          displaylogo = F, 
-                          collaborate = F,
+                          displaylogo = F,
                           modeBarButtonsToRemove = list('sendDataToCloud',
                                                         'hoverCompareCartesian',
                                                         'hoverClosestCartesian',
@@ -540,7 +538,7 @@ qValuePlot <- function(stats, condition, col){
   for(x in 1:101){
     no_features[x] <- sum(stats$qValue_df[,condition-1]<q_values[x])
   }
-  print(no_features)
+
   p <- plotly::plot_ly(x = q_values, 
                        y = (no_features),
                        type = "scatter",
@@ -567,8 +565,7 @@ CVdistrPlotly <- function(stats_CV_DF, CV_cond, col){
                    xaxis = list(title = "Coefficient of variation [%]"),
                    title = paste0("CV distribution - condition ", CV_cond)) %>%
     plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
+                   displaylogo = F,
                    modeBarButtonsToRemove = list('sendDataToCloud',
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
@@ -596,13 +593,13 @@ volcanoPlot <- function(stats, cond, qValue_cutoff){
                   color = grouping,
                   colors = c("#222d32", "#428bca"),
                   type = "scatter",
+                  mode = "markers",
                   marker = list(size = 3.5))%>%
     plotly::layout(legend = list(orientation = 'h', xanchor = "center", y =1.1,x=0.5, font = list(size = 20)),
                    xaxis = list(title = paste0("Log2(C", cond, "/C1)")),
                    yaxis = list(title = paste0("-Log10(qValue (C", cond, "/C1))"))) %>%
     plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
+                   displaylogo = F,
                    modeBarButtonsToRemove = list('sendDataToCloud',
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
@@ -623,13 +620,13 @@ plotlyPCA <- function(data, no_cond, no_rep){
                          y = round(as.numeric(pca$rotation[,2]),3),
                          color = pca$rotation[,(length(pca$rotation[1,])-1)],
                          text = pca$rotation[,length(pca$rotation[1,])],
-                         type = "scatter") %>%
+                         type = "scatter",
+                         mode = "markers") %>%
            plotly::layout(title = "Principal Component Analysis",
-                          xaxis = list(title = paste("Component 1 -", round(pca$sdev[1]^2/(sum(pca$sdev^2)), 2),"[%]")),
-                          yaxis = list(title = paste("Component 2 -", round(pca$sdev[2]^2/(sum(pca$sdev^2)), 2),"[%]"))) %>%
+                          xaxis = list(title = paste("Component 1 -", round(pca$sdev[1]^2/(sum(pca$sdev^2)), 2)*100,"[%]")),
+                          yaxis = list(title = paste("Component 2 -", round(pca$sdev[2]^2/(sum(pca$sdev^2)), 2)*100,"[%]"))) %>%
            plotly::config(showLink = F, 
-                          displaylogo = F, 
-                          collaborate = F,
+                          displaylogo = F,
                           modeBarButtonsToRemove = list('sendDataToCloud',
                                                         'hoverCompareCartesian',
                                                         'hoverClosestCartesian',
@@ -644,7 +641,7 @@ plotD3complexGraph <- function(stats, f_db, row, condition, q_threshold, fc_thre
   subunits <- f_db$Subunits[[row]]
   #Create a color dictionary
   colours <- matrix(ncol = 6, nrow = 1)
-  colnames(colours) <- c("Complex", "Downregulated", "Upregulated", "Not quantified", "Not changing", "NA")
+  colnames(colours) <- c(paste("Complex:", as.character(f_db$Complex_Name[row], collapse = "", sep = "")), "Downregulated", "Upregulated", "Not quantified", "Not changing", "NA")
   colours[1,] <- c("#9ea4d1", "#e22200", "#25d14a", "#afafaf", "#428bca", "#f83581")
   no_subunits <- length(f_db$Subunits[[row]])
   node_names <- c(as.character(f_db$Complex_Name[row]), subunits)
@@ -677,11 +674,11 @@ plotD3complexGraph <- function(stats, f_db, row, condition, q_threshold, fc_thre
   }
   links <- data.frame(source = 1:no_subunits, target = 0, value = qValue_vector)
   #Change fold changes into grouping - 
-  node_grouping <- c("Complex", sapply(fc_vector, 
-                                       function(x) ifelse(is.na(x), yes = "NA", 
-                                                          no = ifelse(x < -fc_threhold, yes = "Downregulated" ,
-                                                                      no = ifelse(x == 0, yes = "Not quantified", 
-                                                                                  no = ifelse(x > fc_threhold, yes = "Upregulated", no = "Not changing"))))))
+  node_grouping <- c(paste("Complex: ", node_names[1], collapse = "", sep = ""), sapply(fc_vector, 
+                                                          function(x) ifelse(is.na(x), yes = "NA", 
+                                                                      no = ifelse(x < -fc_threhold, yes = "Downregulated" ,
+                                                                                  no = ifelse(x == 0, yes = "Not quantified", 
+                                                                                              no = ifelse(x > fc_threhold, yes = "Upregulated", no = "Not changing"))))))
   #Adjusting colour order
   exp_order <- unique(node_grouping)
   colour_order <- NULL
@@ -706,49 +703,50 @@ plotD3complexGraph <- function(stats, f_db, row, condition, q_threshold, fc_thre
 
 #2. Barplot for 1 protein (subunit) expression levels among samples, showing upon selecting a node
 expressionBarplot <- function(proteinID, f_data, stat_list){
+  
   if(!(proteinID %in% f_data$ProteinID)){
     return(NULL)
   }
   index <- match(x = proteinID, 
-                 table = f_data$ProteinID)
+                 table =  f_data$ProteinID)
   abs_vals <- as.vector(stat_list$absolute_df[index,-1], mode = "numeric")
   means <- stat_list$means_df[index,]
   SDs <- stat_list$SD_df[index,]
   no_conditions <- length(means)
   no_reps <- length(abs_vals)/no_conditions
   bar_labels <- paste("C",1:no_conditions,"")
-  abs_labels <- rep(bar_labels,each = no_reps)
+  abs_labels <- rep(bar_labels, each = no_reps)
   df <- data.frame(x = bar_labels, 
                    y = means, 
                    sd = SDs)
   df1 <- data.frame(x = abs_labels, y = as.vector(abs_vals))
   #p for plot
-  p <- plot_ly(data = df,
+  p <- plotly::plot_ly(data = df,
                x = ~x,
                y = ~y, 
                color = ~x,
                error_y = list(array = ~sd, color = '#000000'),
                type = "bar",
                marker = list(line = list(color = '#000000', width = 1))) %>%
-    plotly::layout(title = paste("Expression of", proteinID, "protein", collapse = " "),
-                   yaxis = list(title = "Absolute intensity", 
-                                exponentformat  = "E",
-                                showticklabels = TRUE,
-                                tickfont  = list (family = "Arial, sans-serif",
-                                                  size = 10.5,
-                                                  color = "black")),
-                   xaxis = list(title = "Condition"), 
-                   showlegend = FALSE) %>%
-    plotly::add_trace(data = df1,
-                      x = ~x,
-                      y = ~y,
-                      type = "scatter",
-                      color = ~x,
-                      marker = list(size = 6)) %>%
+               plotly::layout(title = paste("Expression of", proteinID, "protein", collapse = " "),
+                              yaxis = list(title = "Absolute intensity", 
+                              exponentformat  = "E",
+                              showticklabels = TRUE,
+                              tickfont  = list (family = "Arial, sans-serif",
+                                                size = 10.5,
+                                                color = "black")),
+                              xaxis = list(title = "Condition"), 
+                              showlegend = FALSE) %>%
+                plotly::add_trace(data = df1,
+                                  x = ~x,
+                                  y = ~y,
+                                  type = "scatter",
+                                  mode = "markers",
+                                  color = ~x,
+                                  marker = list(size = 6)) %>%
     #Adjusting icons 
     plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
+                   displaylogo = F,
                    modeBarButtonsToRemove = list('sendDataToCloud',
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
@@ -791,7 +789,7 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
   
   colnames(mx) <- present_subunits
 
-  if(ncol(mx) >= 3){
+  if(ncol(mx) >= 2){
     
     FARMS <- fast.Farms(probes = t(mx))
     probes_adj <- (FARMS$loadings*mx)/sum(FARMS$loadings, na.rm = T)
@@ -799,28 +797,28 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
     
   }
 
-  
-  p <- plot_ly(x = x_sequence, y = mx[,1], type = "scatter", mode = "lines+markers", name = present_subunits[1]) %>%
-               plotly::layout(title = complex_name, yaxis = list(title = scale), xaxis = list(title = "Condition")) %>%
-               plotly::config(showLink = F, displaylogo = F, collaborate = F, modeBarButtonsToRemove = list("sendDataToCloud",
-                                                                                                            "hoverCompareCartesian",
-                                                                                                            "hoverClosestCartesian",
-                                                                                                            "toggleSpikelines"))
+  p <- plotly::plot_ly(x = x_sequence, y = mx[,1], type = "scatter", mode = "lines+markers", name = present_subunits[1]) %>%
+               plotly::layout(title = complex_name, yaxis = list(title = scale), 
+                              xaxis = list(title = "Condition",ticktext = paste0("C", 1:no_cond), tickvals = 1:no_cond,tickmode = "array")) %>%
+               plotly::config(showLink = F, displaylogo = F, modeBarButtonsToRemove = list("sendDataToCloud",
+                                                                                           "hoverCompareCartesian",
+                                                                                           "hoverClosestCartesian",
+                                                                                           "toggleSpikelines"))
   
   for(protein in 2:no_subunits){
     
-    p <- add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "lines+markers", name = present_subunits[protein])
+    p <- plotly::add_trace(p, x = x_sequence, y = mx[,protein], type = "scatter", mode = "lines+markers", name = present_subunits[protein])
     
   }
   
-  if(ncol(mx) >= 3){
+  if(ncol(mx) >= 2){
     
-    p <- add_trace(p, x = x_sequence, y = complex_expr, type = "scatter", mode = "lines+markers", name = "Complex", 
-                   line = list(color = alpha("blue", 0.9), width = 4), 
-                   marker = list(color = alpha("blue", 0.9), size = 9))
+    p <- plotly::add_trace(p, x = x_sequence, y = complex_expr, type = "scatter", mode = "lines+markers", name = "Complex",
+                           line = list(color = alpha("blue", 0.9), width = 4),
+                           marker = list(color = alpha("blue", 0.9), size = 9))
     
   }
-  
+
   return(list(plot = p, subunits_names = present_subunits, index_vector = index_vector))
   
 }
@@ -867,7 +865,8 @@ plotComplexHeatmap <- function(names_vector, index_vector, stats, no_cond, dista
                                                  fontsize_row = 6,
                                                  fontsize_col = 6,
                                                  margins = c(80,80,NA,0),
-                                                 col = cool_warm, expr_array = expr_array)))
+                                                 col = cool_warm), expr_array = expr_array
+      ))
     }
   }
 }
@@ -898,7 +897,7 @@ plotCorrelationHeatmap <- function(names_vector, index_vector, stats, correlatio
                          main = "Correlation map",
                          margins = c(80,80,50,10),
                          fontsize_row = 7,
-                         fontsize_col = 6))}
+                         fontsize_col = 6)) }
   else{
     row_dend  <- correlation_matrix %>% 
       dist(method = "minkowski", p = p) %>% 
@@ -972,8 +971,7 @@ plotComplexCorrelation <- function(database, row,stats, cond_1, cond_2){
                    xaxis = list(title = paste0("Condition ", cond_2)))%>%
     #Adjusting icons 
     plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
+                   displaylogo = F,
                    modeBarButtonsToRemove = list('sendDataToCloud',
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
@@ -1102,10 +1100,10 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
     #Calculate log2 FC
     FC <- sapply(2:(no_cond), function(x) {FC[x-1] <- mean(colSums(probes_adj[,((x-1)*no_rep+1):(x*no_rep)]), na.rm = TRUE) - mean(colSums(probes_adj[,1:no_rep]), na.rm = TRUE)})
     #Turn log2 FC to FC since the input thresholds that affect star plot and bar plot, and also regulation summary are in FC scale.
-    FC <- 2^FC
+    #FC <- 2^FC
     
-    #Transform to FC (FC = R for R>=1 or -1/R for FC < 1) 
-    #FC <- sapply(FC, function(x) ifelse(x>=1, yes = x, no = -1/x))
+    #Transform to FC (FC = 2^logFC for R>=0 or -1/2^logFC for FC < 0) 
+    FC <- sapply(FC, function(x) ifelse(x>=0, yes = 2^x, no = -1/(2^x)))
     noise <- FARMS$noise
     result <- c(FC, noise)
     names(result) <- c(paste0("FC C", 2:no_cond, "/C1"), "Noise")
@@ -1194,23 +1192,22 @@ regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPR
   df <- data.frame(Upregulated = up, 
                    Downregulated = down, 
                    Condition = names(up))
-  p <- plot_ly(df, x = ~Condition, 
+  p <- plotly::plot_ly(df, x = ~Condition, 
                y = ~Upregulated, 
                type = "bar", 
                name = "Upregulated",
                text = df$Upregulated,
                textposition = 'outside') %>%
-    add_trace(y = ~Downregulated, 
+    plotly::add_trace(y = ~Downregulated, 
               name = "Downregulated", 
               text = df$Downregulated, 
               textposition = 'outside') %>%
-    layout(barmode = "group", 
-           title = "Regulated complexes", 
-           yaxis = list(title = "Number of complexes"),
-           legend = list(orientation = 'h')) %>%
+    plotly::layout(barmode = "group", 
+              title = "Regulated complexes", 
+              yaxis = list(title = "Number of complexes"),
+              legend = list(orientation = 'h')) %>%
     plotly::config(showLink = F, 
-                   displaylogo = F, 
-                   collaborate = F,
+                   displaylogo = F,
                    modeBarButtonsToRemove = list('sendDataToCloud',
                                                  'hoverCompareCartesian',
                                                  'hoverClosestCartesian',
