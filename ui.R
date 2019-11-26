@@ -62,7 +62,7 @@ header <- dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
 sidebar <- dashboardSidebar(
   width = 250,
   sidebarMenu(id = "sidebar_menu",
-              menuItem(text = "Data input and QC", 
+              menuItem(text = "Data input and QC",
                        tabName = "input", 
                        icon = icon("table")),
               menuItem(text = "Complex analysis", 
