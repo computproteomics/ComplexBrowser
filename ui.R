@@ -68,11 +68,10 @@ sidebar <- dashboardSidebar(
               tags$head(
                 tags$style(HTML("
 .skin-black .sidebar a {
-     color: #FF3333;
+     color: #FF3333!important;
 };
     "))
               ),
-              
               menuItem(text = "Data input and QC",
                        tabName = "input", 
                        icon = icon("table")),
