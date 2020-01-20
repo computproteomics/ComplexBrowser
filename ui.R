@@ -200,7 +200,7 @@ body <- dashboardBody(
       fluidRow(
         box(title = "Log-transformed values distribution",
             div(style="display: inline-block;vertical-align:top; width: 250px;",
-                selectInput(inputId = "norm_technique", label = "Choose normalization technique", selected = "Quantile", choices = c("Total Intensity","Mean", "Median", "Quantile"))),
+                selectInput(inputId = "norm_technique", label = "Choose normalization technique", selected = "Median", choices = c("Total Intensity","Mean", "Median", "Quantile"))),
             div(style="display: inline-block;vertical-align:top; width: 200px; margin: 0px 0px 0px 0px;",
                 actionButton(inputId = "norm_run", label = "Run normalization", icon = icon("bar-chart"))),
             shinycssloaders::withSpinner(plotlyOutput(outputId = "input_boxplot", height = 500), type = 1, size = 1),
