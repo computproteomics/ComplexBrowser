@@ -65,6 +65,14 @@ header <- dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
 sidebar <- dashboardSidebar(
   width = 250,
   sidebarMenu(id = "sidebar_menu",
+              tags$head(
+                tags$style(HTML("
+.skin-black .sidebar a {
+     color: #FF3333;
+};
+    "))
+              ),
+              
               menuItem(text = "Data input and QC",
                        tabName = "input", 
                        icon = icon("table")),
