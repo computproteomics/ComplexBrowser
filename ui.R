@@ -71,7 +71,7 @@ sidebar <- dashboardSidebar(
               tags$head(
                 tags$style(HTML("
 .skin-black .sidebar a {
-     color: #FF3333!important;
+     color: #DD9977!important;
 };
     "))
               ),
