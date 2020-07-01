@@ -2,6 +2,8 @@
 
 Welcome to the repository of ComplexBrowser!
 
+For more details see the manuscript: https://doi.org/10.1074/mcp.TIR119.001434
+
 See the [Tutorial](https://bitbucket.org/michalakw/complexbrowser/raw/dcaef828f7f0f9501c4f041391471b94acf00be1/Manual.pdf) for a detailed explanation of the tool.
 
 You can 
