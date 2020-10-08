@@ -7,15 +7,15 @@ LABEL description="Docker image of ComplexBrowser implementation on top of shiny
 #RUN rm -rf /var/cache/apt/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 #RUN apt-get clean && apt-get update && apt-get install -y apt-utils
 
-RUN apt-get update && apt-get install -y libssl-dev liblzma-dev libbz2-dev libicu-dev && apt-get clean 
+RUN apt-get update && apt-get install -y libssl-dev liblzma-dev libbz2-dev libicu-dev libxml2 libxml2-dev libglpk-dev && apt-get clean 
 
 
 RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
   update.packages(ask=F); \
   BiocManager::install(c('dplyr','plotly'),ask=F)"
 RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\
-  'shinydashboard','shinyBS','heatmaply','GGally','rmarkdown','shinycssloaders','cowplot','pander','colourpicker','biomaRt'),ask=F)"
-
+  'shinydashboard','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','colourpicker','biomaRt'),ask=F)"
+RUN R -e "remove.packages('rmarkdown');library(devtools);install_version("rmarkdown", version = '1.8')"
 #RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
 #  update.packages(ask=F); \
 #  BiocManager::install();\
