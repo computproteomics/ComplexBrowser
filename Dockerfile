@@ -15,7 +15,7 @@ RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org');
   BiocManager::install(c('dplyr','plotly'),ask=F)"
 RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\
   'shinydashboard','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','colourpicker','biomaRt'),ask=F)"
-RUN R -e "remove.packages('rmarkdown');library(devtools);install_version("rmarkdown", version = '1.8')"
+RUN R -e "library(devtools);install_version("rmarkdown", version = '1.8')"
 #RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
 #  update.packages(ask=F); \
 #  BiocManager::install();\
