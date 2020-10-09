@@ -16,6 +16,12 @@ RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org');
 RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\
   'shinydashboard','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','colourpicker','biomaRt'),ask=F)"
 RUN R -e "library(devtools);install_version('rmarkdown', version = '1.8')"
+
+# needs google-chrome to run the webshot
+RUN wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+RUN apt-get install -y ./google-chrome-stable_current_amd64.deb && rm google-chrome-stable_current_amd64.deb 
+RUN sed -i '${s/$/ --no-sandbox/g}'  /opt/google/chrome/google-chrome
+
 #RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
 #  update.packages(ask=F); \
 #  BiocManager::install();\
@@ -30,3 +36,4 @@ COPY *csv  /srv/shiny-server/
 COPY *pdf  /srv/shiny-server/
 RUN mkdir /srv/shiny-server/styling
 COPY styling/* /srv/shiny-server/styling/
+
