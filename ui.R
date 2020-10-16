@@ -11,184 +11,79 @@ library(GGally)
 library(rmarkdown)
 library(dplyr)
 library(jsonlite)
-#Packages needed for plotly to PDF
-#install.packages("webshot")
-library(webshot)
-#webshot::install_phantomjs()
-#install.packages("htmlwidgets")
+#For webshot2
+#install.packages("remotes")
+#library(remotes)
+#remotes::install_github("rstudio/webshot2")
+library(webshot2)
 library(htmlwidgets)
 library(shinyjs)
-
-# Make sure rmarkdown version is 1.8
-#remove.packages("rmarkdown")
-#library(devtools)
-#install_version("rmarkdown", version = "1.8")
-#install.packages("glue")
 library(grid)
 library(gridExtra)
 library(lattice)
-#install.packages("cowplot")
 library(cowplot)
-#install.packages("shinycssloaders")
 library(shinycssloaders)
 
-#Avoid the background colour errors
-tags$script(HTML("$('body').addClass('sidebar-mini');"))
+source("Functions.R")
+
+# Application's header with custom dropdown menu.(Done)
+header <- shinydashboard::dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
+                                          shiny::tags$li(class = "dropdown", shiny::tags$style(shiny::HTML(".text-info {color:#DD9977;}"))),
+                                          shinydashboard::dropdownMenuOutput("notification_dropdown_menu"))
 
 
-# Interface or the top part of the aplication, dropdown menu with buttons for references
-header <- dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
-                          dropdownMenu(
-                            type = "notifications", 
-                            icon = icon("question-circle"),
-                            badgeStatus = NULL,
-                            headerText = "Documentation and help",
-                            notificationItem(text = "Source code and installation", 
-                                             icon = icon("bitbucket"),
-                                             href = "https://bitbucket.org/michalakw/complexbrowser/"),
-                            notificationItem(text = "Publication (please cite)", 
-                                             icon = icon("align-justify"),
-                                             href = "https://www.mcponline.org/content/early/2019/08/25/mcp.TIR119.001434"),
-                            notificationItem(text = "Tutorial", 
-                                             icon = icon("question"),
-                                             href = "Manual.pdf"),
-                            notificationItem(text = "CORUM database", 
-                                             icon = icon("database"),
-                                             href = "http://mips.helmholtz-muenchen.de/corum/download/coreComplexes.txt.zip"),
-                            notificationItem(text = "ComplexPortal database", 
-                                             icon = icon("database"),
-                                             href = "https://www.ebi.ac.uk/complexportal/download"),
-                            notificationItem(text = "Report a Bug!", 
-                                             icon = icon("bug"), 
-                                             href = "mailto:wojciechm@bmb.sdu.dk"),
-                            notificationItem(text = "Go to article page", 
-                                             icon = icon("book"),
-                                             href = "https://www.ncbi.nlm.nih.gov/pubmed/")))  
-# Interface sidebar, two panels, depending on the tabs clicked.
-sidebar <- dashboardSidebar(
-  width = 250,
-  sidebarMenu(id = "sidebar_menu",
-              tags$head(
-                tags$style(HTML("
-.skin-black .sidebar a {
-     color: #DD9977!important;
-};
-    "))
-              ),
-              notificationItem(text = "Publication (please cite)", 
-                               icon = icon("align-justify"),
-                               href = "https://www.mcponline.org/content/early/2019/08/25/mcp.TIR119.001434"),
-              menuItem(text = "Data input and QC",
-                       tabName = "input", 
-                       icon = icon("table")),
-              menuItem(text = "Complex analysis", 
-                       tabName = "analysis", 
-                       icon = icon("line-chart")),
-              conditionalPanel(condition = "input.sidebar_menu === 'input'",
-                               fileInput(inputId = "in_file",
-                                         label = "Select input file"),
-                               actionButton(inputId = "load_example", 
-                                            label = "Load example", 
-                                            width = "220px", 
-                                            icon = icon("upload")),
-                               bsTooltip(id= "load_example",
-                                         title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Reveals Dynamic Signaling Networks and Bioenergetics Pathways Underlying T Cell Activation</i> Immunity, 2017 "),
-                               actionButton(inputId = "run_QC", 
-                                            label = "Run QC", 
-                                            width = "220px", 
-                                            icon = icon("bar-chart")),
-                               uiOutput(outputId = "download_input_stats_merged"),
-                               uiOutput(outputId = "QC_report_button"),
-                               radioButtons(inputId = "separator",
-                                            label = "Separator:", 
-                                            choices = c(";",",",":","tab"),
-                                            selected = ",",
-                                            inline = TRUE),
-                               bsTooltip(id = "separator", 
-                                         title = "Character in your file used to separate cells in one row"),
-                               radioButtons(inputId = "decimal",
-                                            label = "Decimal mark",
-                                            choices = c(".",", "),
-                                            inline = TRUE),
-                               bsTooltip(id = "decimal", 
-                                         title = "Character used to separate integer from the fractional part of the values"),
-                               sliderInput(inputId = "no_conditions",
-                                           label = "Select number of conditions", 
-                                           min = 2, 
-                                           max = 20, 
-                                           step = 1, 
-                                           value = 2),
-                               bsTooltip(id = "no_conditions", 
-                                         title = "Number of different experimental conditions in your experiment"),
-                               sliderInput(inputId = "no_replicates",
-                                           label = "Select number of replicates", 
-                                           min = 2, 
-                                           max = 20, 
-                                           step = 1, 
-                                           value = 2),
-                               bsTooltip(id = "no_replicates", 
-                                         title = "Number of replicates in every condition"),
-                               #Here the inputs are not styled with CSS; for some reason when doing so the checkbox ends up on the label!
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   checkboxInput(inputId = "log2",
-                                                 label = "Is data log2 transformed?",
-                                                 value = FALSE)),
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   checkboxInput(inputId = "grouped",
-                                                 label = "Replicates are grouped",
-                                                 value = TRUE)),
-                               bsTooltip(id = "grouped",
-                                         title = "Are biological replicates in adjacent columns? (C1.1, C1.2, C1.3...)"),
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   checkboxInput(inputId = "statistics",
-                                                 label = "Are q-values included?",
-                                                 value = TRUE)),
-                               bsTooltip(id = "statistics",
-                                         title = "If no p/q values are provided, the LIMMA test will be performed"),
-                               uiOutput(outputId = "design")),
-              
-              
-              
-              conditionalPanel(condition = "input.sidebar_menu === 'analysis'",
-                               checkboxInput(inputId = "q_values_th",
-                                             label = "Statistical threshold for visualisation", 
-                                             value = TRUE),
-                               bsTooltip(id = "q_values_th", 
-                                         title = "Use a statistical test value threshold in the analysis?"),
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   uiOutput(outputId = "significance_level")),
-                               numericInput(inputId = "FC_th", label = "Fold change threshold",
-                                            min = 1, max = 3, step = 0.05, value = 1.2),
-                               bsTooltip(id = "FC_th", 
-                                         title = "Select threshold for considering fold changes as up(>X) / down ( -< X) regulation"),
-                               numericInput(inputId = "noise_th",
-                                            label = "Noise threshold for summary",
-                                            min=0.01, max = 1, step = 0.05, value = 0.5),
-                               bsTooltip(id = "noise_th",
-                                         title = "Select noise level threshold, that will be considered when creating a summary"),
-                               bsTooltip(id = "significance_level", 
-                                         title = "What should be the statistical threshold for considering a protein to be differentially regulated?"),
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   selectInput(inputId = "database", 
-                                               label = "Select database for analysis", 
-                                               choices = c("CORUM", "EBI Complex Portal","User defined database"))),
-                               bsTooltip(id = "database", 
-                                         title = "Which protein complex database should be used in the analysis?<br/>CORUM version: 02.07.2017<br/>Complex Portal version: 03.21.2018", 
-                                         placement = "top"),
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   uiOutput(outputId = "user_database")),
-                               bsTooltip(id = "user_database", 
-                                         title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, Subnits (; separated, no spaces),GO_terms, Comment"),
-                               
-                               div(style = "display: block;; margin:0 auto; text-align: center;",
-                                   uiOutput(outputId = "species")),
-                               actionButton(inputId = "run_analysis", 
-                                            label = "Run analysis",
-                                            icon = icon("cogs")),
-                               uiOutput("download_complex_table")
-                               
-              )))
-
+# Interface sidebar, two panels, depending on the tabs clicked. (Done)
+sidebar <- shinydashboard::dashboardSidebar(width = 250, 
+                                            shinydashboard::sidebarMenu(id = "sidebar_menu",
+                                              shiny::tags$head(shiny::tags$style(shiny::HTML(".skin-black .sidebar-menu>li>a {color: #DD9977!important;};"))),
+                                              shiny::tags$head(shiny::tags$style(shiny::HTML(".sidebar-menu .text-success {color:#DD9977;}"))),
+                                              shinydashboard::dropdownMenuOutput("notification_sidebar"),
+                                              shinydashboard::menuItem(text = "Data input and QC", tabName = "input", icon = shiny::icon("table")),
+                                              shinydashboard::menuItem(text = "Complex analysis", tabName = "analysis", icon = shiny::icon("line-chart")),
+                                              shiny::conditionalPanel(condition = "input.sidebar_menu === 'input'",
+                                                                      shiny::tags$div(style = "text-align:center;", shiny::tags$h5(id = "input_text", shiny::tags$b("Select input file "))),
+                                                                      shinyBS::bsTooltip(id = "input_text", title = "Input file in .csv or .txt format. First column must contain unique protein identifiers and the sebsequent columns the quantitative data. Optionally, a statisticall score column can be added at the end."),
+                                                                      shiny::fileInput(inputId = "in_file", label = NULL, accept = c("text/csv","text/comma-separated-values,text/plain",".csv") ),
+                                                                      shiny::actionButton(inputId = "load_example", label = "Load example", width = "220px", icon = shiny::icon("upload")),
+                                                                      shinyBS::bsTooltip(id = "load_example", title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Reveals Dynamic Signaling Networks and Bioenergetics Pathways Underlying T Cell Activation</i> Immunity, 2017 "),
+                                                                      shiny::actionButton(inputId = "run_QC", label = "Run QC", width = "220px", icon = shiny::icon("bar-chart")),
+                                                                      shiny::uiOutput(outputId = "download_input_stats_merged"),
+                                                                      shiny::uiOutput(outputId = "QC_report_button"),
+                                                                      shiny::radioButtons(inputId = "separator", label = "Separator:", choices = c(";", ",", ":", "tab"), selected = ",", inline = TRUE),
+                                                                      shinyBS::bsTooltip(id = "separator", title = "The separator character used in the input file."),
+                                                                      shiny::radioButtons(inputId = "decimal", label = "Decimal mark", choices = c(".", ","), inline = TRUE),
+                                                                      shinyBS::bsTooltip(id = "decimal", title = "Character used to separate integer from the fractional part of the values."),
+                                                                      shiny::sliderInput(inputId = "no_conditions", label = "Select number of conditions", min = 2, max = 20, step = 1, value = 2),
+                                                                      shinyBS::bsTooltip(id = "no_conditions", title = "Number of different experimental conditions in your experiment."),
+                                                                      shiny::sliderInput(inputId = "no_replicates", label = "Select number of replicates", min = 2, max = 20, step = 1, value = 2),
+                                                                      shinyBS::bsTooltip(id = "no_replicates", title = "Number of replicates in every condition."),
+                                                                      shiny::checkboxInput(inputId = "log2", label = "Is data log2 transformed?", value = FALSE),
+                                                                      shiny::checkboxInput(inputId = "grouped", label = "Replicates are grouped", value = TRUE),
+                                                                      shinyBS::bsTooltip(id = "grouped", title = "Are biological replicates in adjacent columns? (C1.1, C1.2, C1.3...)"),
+                                                                      shiny::checkboxInput(inputId = "statistics", label = "Are q-values included?", value = TRUE),
+                                                                      shinyBS::bsTooltip(id = "statistics", title = "If no p/q values are provided, the LIMMA test will be performed."),
+                                                                      shiny::uiOutput(outputId = "design")),
+                                              shiny::conditionalPanel(condition = "input.sidebar_menu === 'analysis'",
+                                                                      shiny::checkboxInput(inputId = "q_values_th", label = "Statistical threshold for visualisation", value = TRUE),
+                                                                      shinyBS::bsTooltip(id = "q_values_th", title = "Use a statistical test value threshold in the analysis?"),
+                                                                      shiny::uiOutput(outputId = "significance_level"),
+                                                                      shiny::numericInput(inputId = "FC_th", label = "Fold change threshold", min = 1, max = 3, step = 0.05, value = 1.2),
+                                                                      shinyBS::bsTooltip(id = "FC_th", title = "Select threshold for considering fold changes as up(> X) / down (-< X) regulation."),
+                                                                      shiny::numericInput(inputId = "noise_th", label = "Noise threshold for summary", min = 0.01, max = 1, step = 0.05, value = 0.5),
+                                                                      shinyBS::bsTooltip(id = "noise_th", title = "Select noise level threshold, that will be considered when creating a top5 summary report."),
+                                                                      shinyBS::bsTooltip(id = "significance_level", title = "What should be the statistical threshold for considering a protein to be differentially regulated?"),
+                                                                      shiny::selectInput(inputId = "database", label = "Select database for analysis", choices = c("CORUM", "EBI Complex Portal","User defined database")),
+                                                                      shinyBS::bsTooltip(id = "database", title = "Which protein complex database should be used in the analysis?", placement = "top"),
+                                                                      selectizeTooltip(id = "database", choice = "CORUM", title = "CORUM version: 02.07.2017", placement = "right"),
+                                                                      selectizeTooltip(id = "database", choice = "EBI Complex Portal", title = "Complex Portal version: 03.21.2018", placement = "right"),
+                                                                      selectizeTooltip(id = "database", choice = "User defined database", title = "Input custom database according to the provided example (UserDB_EXAMPLE.csv)", placement = "right"),
+                                                                      shiny::uiOutput(outputId = "user_database"),
+                                                                      shinyBS::bsTooltip(id = "user_database", title = "User defined database table in .RDS format must contain 6 columns. ComplexID, ComplexName, Organism, Subnits (; separated, no spaces),GO_terms, Comment."),
+                                                                      shiny::uiOutput(outputId = "species"),
+                                                                      shiny::actionButton(inputId = "run_analysis", label = "Run analysis", icon = shiny::icon("cogs")),
+                                                                      shiny::uiOutput("download_complex_table"))
+                                                                      )
+                                            )
 
 body <- dashboardBody(
   tags$script(src = "CallShiny.js"),
@@ -343,34 +238,21 @@ body <- dashboardBody(
               )),
             fluidRow(
               tabBox(
-                tabPanel(
+                tabPanel( #(Done)
                   title = "Protein expression heatmap",
-                  tags$head(tags$style(HTML("
-                                            #complex_name {
-                                            text-align: center;
-                                            }
-                                            div.box-header {
-                                            text-align: center;
-                                            }
-                                            "))),
-                  textOutput(outputId = "complex_name"),
-                  div(style="display: inline-block;vertical-align:top; width: 200px; margin: 10px 0px 0px 0px;",
-                      selectInput(inputId = "d_measure",
-                                  label = "Distance measure for clustering",
-                                  choices = c("manhattan", "euclidean", "minkowski", "maximum"),
-                                  selected = "euclidean")),
-                  div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
-                  div(style="display: inline-block;vertical-align:top; width: 300px; margin: 10px 0px 0px 0px;",
-                      selectInput(inputId = "agg_method",
-                                  label = "Aggregation method for hierarchical clustering",
-                                  choices = c("single", "complete", "average", "median", "centroid"),
-                                  selected = "complete")),
-                  div(style="display: inline-block;vertical-align:top; width: 50px;", tags$hr(style = "height:1px; visibility:hidden;")),
-                  div(style="display: inline-block;vertical-align:top; width: 200px; margin: 10px 0px 0px 0px;",
-                      uiOutput(outputId = "minkowski_p")),
-                  br(),
-                  shinycssloaders::withSpinner(plotlyOutput(outputId = "expression_heatmap", height = 500), type = 1, size = 1),
-                  uiOutput("expression_heatmap_download_cui")),
+                  shiny::tags$head(shiny::tags$style(shiny::HTML("#complex_name {text-align: center;} div.box-header {text-align: center;}"))),
+                  shiny::textOutput(outputId = "complex_name"),
+                  shiny::tags$div(style = "display: inline-block;vertical-align:top; width: 150px; margin: 10px 0px 0px 0px;",
+                                  shiny::selectInput(inputId = "d_measure", label = "Distance measure", choices = c("manhattan", "euclidean", "minkowski", "maximum"), selected = "euclidean")),
+                  shiny::tags$div(style = "display: inline-block;vertical-align:top; width: 20px;", shiny::tags$hr(style = "height:1px; visibility:hidden;")),
+                  shiny::tags$div(style = "display: inline-block;vertical-align:top; width: 150px; margin: 10px 0px 0px 0px;",
+                                  shiny::selectInput(inputId = "agg_method", label = "Linkage method", choices = c("single", "complete", "average", "median", "centroid"), selected = "complete")),
+                  shiny::tags$div(style = "display: inline-block;vertical-align:top; width: 20px;", shiny::tags$hr(style = "height:1px; visibility:hidden;")),
+                  shiny::tags$div(style="display: inline-block;vertical-align:top; width: 150px; margin: 10px 0px 0px 0px;",
+                                  shiny::uiOutput(outputId = "minkowski_p")),
+                  shiny::tags$br(),
+                  shinycssloaders::withSpinner(plotly::plotlyOutput(outputId = "expression_heatmap", height = 500), type = 1, size = 1),
+                  shiny::uiOutput("expression_heatmap_download_cui")),
                 tabPanel(
                   title = "Protein correlation heatmap",
                   textOutput("complex_name1"),
@@ -397,3 +279,10 @@ body <- dashboardBody(
                 ))))))
 
 dashboardPage(header,sidebar,body, skin = "black")
+
+
+
+
+
+
+

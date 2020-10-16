@@ -3,45 +3,91 @@ source("Functions.R")
 #"Bioinformatics in Proteomics: A web based platform for supervised analysis focused on protein complexes"
 # June 2018
 
-
 options(shiny.maxRequestSize=2000*1024^2)
 
 function(input,output,session){
-  #Initiate empty reactiveValues object to store all data and results
-  data <- reactiveValues()
+  
+  ####################################### ANNOTATIONS ############################################
+  
+  #Custom notification dropdown menu function. (Done)
+  output$notification_dropdown_menu <- shinydashboard::renderMenu({
+    
+    notification_SC <- shinydashboard::notificationItem(text = "Source code and installation", icon = shiny::icon("file-code-o"), status = "info", href = paste0("noti"))
+    notification_SC$children[[1]] <- shiny::tags$a(href = "https://bitbucket.org/michalakw/complexbrowser/", target = "_blank", list(notification_SC$children[[1]]$children))
+    
+    notification_Tut <- shinydashboard::notificationItem(text = "Tutorial", icon = shiny::icon("question"), status = "info", href = paste0("tut"))
+    notification_Tut$children[[1]] <- shiny::tags$a(href = "Manual.pdf", target = "_blank", list(notification_Tut$children[[1]]$children))
+    
+    notification_Corum <- shinydashboard::notificationItem(text = "CORUM database", icon = shiny::icon("database"), status = "info", href = paste0("corum"))
+    notification_Corum$children[[1]] <- shiny::tags$a(href = "http://mips.helmholtz-muenchen.de/corum/download/coreComplexes.txt.zip", target = "_blank", list(notification_Corum$children[[1]]$children))
+
+    notification_Portal <- shinydashboard::notificationItem(text = "ComplexPortal database", icon = shiny::icon("database"), status = "info", href = paste0("portal"))
+    notification_Portal$children[[1]] <- shiny::tags$a(href = "https://www.ebi.ac.uk/complexportal/download", target = "_blank", list(notification_Portal$children[[1]]$children))
+
+    notification_Contact <- shinydashboard::notificationItem(text = "Report a Bug!", icon = shiny::icon("bug"), status = "info", href = paste0("bug"))
+    notification_Contact$children[[1]] <- shiny::tags$a(href = "mailto:veits@bmb.sdu.dk", target = "_blank", list(notification_Contact$children[[1]]$children))
+    
+    notification_menu <- shinydashboard::dropdownMenu(notification_SC,
+                                                      notification_Tut,
+                                                      notification_Corum,
+                                                      notification_Portal,
+                                                      notification_Contact,
+                                                      type = "notifications",
+                                                      badgeStatus = NULL,
+                                                      icon = icon("question-circle"),
+                                                      headerText = "Info:")
+    
+    return(notification_menu)
+    
+  })
+  
+  #Custom notification for sidebar menu. (Done)
+  output$notification_sidebar <- shinydashboard::renderMenu({
+    
+    notification_Citation <- shinydashboard::notificationItem(text = "Publication (please cite)", icon = shiny::icon("book-open"), href = paste0("cite"))
+    notification_Citation$children[[1]] <- shiny::tags$a(href = "https://www.mcponline.org/content/early/2019/08/25/mcp.TIR119.001434", target = "_blank", list(notification_Citation$children[[1]]$children))
+
+    return(notification_Citation)
+    
+  })
+  
+  ############################### INITIALIZE INPUT OBJECTS #######################################
+  
+  #Initiate empty reactiveValues object to store all data and results.
+  data <- shiny::reactiveValues()
   user_input <- NULL
   data$file_indicator <- FALSE
-  normalization_type <- reactiveValues(type = NA)
+  normalization_type <- shiny::reactiveValues(type = NA)
   
-  ################ ################ ################ DYNAMIC INTERFACE ################ ################ ################
-  #Interacive user's interface elements, adjusting to the given input
+  ####################################### UI FUNCTIONS ###########################################
   
-  ################ TAB 1 - QC ################
-  #1. Design for statistical test
-  output$design <- renderUI({
-    req(input$statistics==FALSE)
-    radioButtons(inputId = "design", 
-                 label = "Choose design for limma",
-                 choices = c("unpaired", "paired"),
-                 select = "unpaired", inline = TRUE)
+  ################ TAB 1 - Input ################
+  #1.1 Conditional UI for LIMMA testing when statistical score is not included. (Sidebar) (Done)
+  output$design <- shiny::renderUI({
+    
+    shiny::req(input$statistics == FALSE)
+    shiny::radioButtons(inputId = "design", label = "Choose design for limma", choices = c("unpaired", "paired"), select = "unpaired", inline = TRUE)
+    
   })
   
-  #2. Download button - appears after the data is loaded and statistics is calculated  
-  output$download_input_stats_merged <- renderUI(
-    if(!is.null(data$input_stats_merged)){
-      downloadButton("input_stats_download", 
-                     "Download table")
-    })
+  #1.2 Download button - conditional UI that appears after statistics is calculated, to download table 1. (Sidebar) (Done)
+  output$download_input_stats_merged <- shiny::renderUI({
+      
+    shiny::req(data$input_stats_merged)
+    shiny::downloadButton(outputId = "input_stats_download", label = "Download table")
+      
+  })
   
-  #3. Download button for the QC report
-  output$QC_report_button <- renderUI({
-    req(data$stats)
-    downloadButton("QC_report", 
-                   "Download QC Report")
+  #1.3 Download button - conditional UI to create and download the QC report. (Sidebar) (Done)
+  output$QC_report_button <- shiny::renderUI({
+    
+    shiny::req(data$stats)
+    shiny::downloadButton(outputId = "QC_report", label = "Download QC Report")
+    
   })
   
   
-  #4. QValue distribution
+  #1.4 QValue distribution
   output$qV_reference <- renderUI(
     sliderInput(inputId = "qV_reference",
                 label = "Condition number",
@@ -68,51 +114,49 @@ function(input,output,session){
                 max = data$no_cond,
                 step = 1))
   
-  ################ TAB 2 - Protein complexes ################
-  #1. Species selection, depending on the database chosen
-  output$species <- renderUI(
+  ################ TAB 2 - Analysis ################
+  #2.1. Conditional UI for species selection, depending on the selected database. (Sidebar) (Done)
+  output$species <- shiny::renderUI({
+    
+    shiny::req(input$database)
+    
     if(input$database == "CORUM"){
-      selectInput(inputId = "species",
-                  label = "Species",
-                  choices = c("Bovine", "Dog", "Hamster", "Human", "Mammalia",
-                              "MINK", "Mouse", "Pig", "Rabbit", "Rat"),
-                  selected = "Human")
+      
+      shiny::selectInput(inputId = "species", label = "Species", choices = unique(corum_prepared$Organism), selected = "Human")
+      
+    } else if(input$database == "EBI Complex Portal"){ 
+      
+      shiny::selectInput(inputId = "species", label = "Species", choices = unique(complex_portal_prepared$Organism), selected = "Homo sapiens")
+    
     }
-    else if(input$database == "EBI Complex Portal"){ 
-      selectInput(inputId = "species",
-                  label = "Species",
-                  choices =c("Arabidopsis thaliana", "Bos taurus", "Caenorhabditis elegans",
-                             "Canis lupus familiaris", "Danio rerio", "Drosophila melanogaster",
-                             "Escherichia coli K-12", "Gallus gallus", "Homo sapiens",
-                             "Lymnaea stagnalis", "Mus musculus", "Oryctolagus cuniculus",
-                             "Pseudomonas aeruginosa PAO1", "Rattus norvegicus", "Saccharomyces cerevisiae S288C",
-                             "Schizosaccharomyces pombe 972h", "Sus scrofa", "Tetronarce californica",
-                             "Torpedo marmorata", "Xenopus laevis"),
-                  selected = "Homo sapiens")}
-  )
-  output$user_database <- renderUI({
-    req(input$database == "User defined database")
-    fileInput(inputId = "user_database",
-              label = "Select user defined database")
+    
   })
   
-  #2. Numeric input, appearing only if the user want to include a sifnificance threhold in one's analysis
-  output$significance_level <- renderUI(
-    if(input$q_values_th){
-      numericInput(inputId = "significance_level", 
-                   label = "Enter q value threshold", 
-                   value = 0.05, 
-                   step = 0.01, 
-                   max = 1, 
-                   min = 0)
-    })
-  #3. Download button for the complex table
-  output$download_complex_table <- renderUI(
-    if(!is.null(data$for_display)){
-      downloadButton("complex_table_DH", 
-                     "Download protein complex table")
-    })
-  #4. Input helpers 
+  #2.2 Conditional UI that appears when user defined database is selected. (Sidebar) (Done)
+  output$user_database <- renderUI({
+    
+    shiny::req(input$database == "User defined database")
+    shiny::fileInput(inputId = "user_database", label = "Select user defined database")
+    
+  })
+  
+  #2.3 Conditional UI that appears only when user applies statistical score threshold to the analysis. (Sidebar) (Done)
+  output$significance_level <- shiny::renderUI({
+      
+      shiny::req(input$q_values_th)
+      shiny::numericInput(inputId = "significance_level", label = "Enter q-value threshold", value = 0.05, step = 0.01, max = 1, min = 0)
+  
+  })
+  
+  #2.4. Conditional UI for complex table download. (Sidebar) (Done)
+  output$download_complex_table <- shiny::renderUI({
+      
+    shiny::req(data$for_display)
+    shiny::downloadButton(outputId = "complex_table_DH", label = "Download complex table", style = "width: 220px")
+
+  })
+  
+  #5. Input helpers 
   
   #appears only if the graph is displayed
   output$graph_condition <- renderUI(
@@ -151,7 +195,7 @@ function(input,output,session){
                 min = 1,
                 max = data$no_cond,
                 step = 1))
-  #5. Check how many complexes is a protein in 
+  #6. Check how many complexes is a protein in 
   output$multiple <- renderUI({
     s <- sum(unlist(data$f_database$Subunits) == input$node_clicked)
     req(s > 1)
@@ -160,7 +204,7 @@ function(input,output,session){
                  icon = icon("exclamation"),
                  style = "background-color: #ffd9b3")
   })
-  #6. Create a "GO TO" button, sending the user to the uniprot website of protein ID selected (node)
+  #7. Create a "GO TO" button, sending the user to the uniprot website of protein ID selected (node)
   output$uniprot <- renderUI({
     req(input$node_clicked)
     actionButton(inputId = "uniprot", 
@@ -168,17 +212,16 @@ function(input,output,session){
                  icon = icon("book"),
                  onclick = (paste0("window.open('https://www.uniprot.org/uniprot/",as.character(input$node_clicked),"')")))
   })
-  #7. Minkowski distance p - appears if minkowski distance is selected
-  output$minkowski_p <- renderUI(
-    if(input$d_measure == "minkowski"){
-      numericInput(inputId = "minkowski_p",
-                   label = "p for Minkowski distance",
-                   value = 3,
-                   min = 3,
-                   max = 100,
-                   step = 1)})
   
-  #8. Reference condition for the text summary
+  #8. Minkowski distance p - appears if minkowski distance is selected. (Body) (Done)
+  output$minkowski_p <- shiny::renderUI({
+      
+      shiny::req(input$d_measure == "minkowski")
+      shiny::selectInput(inputId = "minkowski_p", label = "Minkowski p", choices = round(2^c(-2,-1.5, -1, 0.5, 0.5, 2, 3, 4, 5, 6), digits = 2), selected = 4)
+      
+  })
+  
+  #9. Reference condition for the text summary
   output$summary_cond <- renderUI({
     req(data$x)
     sliderInput("complex_summary_reference",
@@ -187,67 +230,89 @@ function(input,output,session){
                 max = data$no_cond,
                 step = 1)
   })
-  #9. Reference for the summary
+  #10. Reference for the summary
   output$summary_cond <- renderUI({
     req(data$no_cond)
     sliderInput(inputId = "summary_cond",
                 label = "Summary condition",
                 min = 2, max = data$no_cond, step = 1, value = 2)
   })
-  ################ ################ ################ Download handlers ################ ################ ################
-  #1. Input file with calculated statistics (table 1)
-  output$input_stats_download <- downloadHandler(
-    filename = paste("MSComplexR_Input_WithStats",Sys.time(),".csv",sep=""),
+  
+  
+  ################################################ 3 Download handlers ################################################
+  
+  #3.1 Download input file with calculated statistics (table 1) (Sidebar) (Done)
+  output$input_stats_download <- shiny::downloadHandler(
+    
+    filename = function(){
+      
+      paste("MSComplexR_Input_WithStats", Sys.time(), ".csv", sep = "")
+    
+    },
     content = function(file){
+      
       write.csv(data$input_stats_merged, file, row.names = FALSE)
+      
     },
     contentType = "text/csv"
   )
-  #2. Protein complex table (table 2)
-  output$complex_table_DH <- downloadHandler(
-    filename = paste("Protein_complex_resutls",Sys.time(),".csv",sep=""),
+  
+  #3.2 Download protein complex table (table 2) (Sidebar) (Done)
+  output$complex_table_DH <- shiny::downloadHandler(
+    
+    filename = function(){
+      
+      paste("Protein_complex_resutls", Sys.time(), ".csv", sep = "")
+      
+    },
     content = function(file) {
+      
       write.csv(data$for_display, file, row.names = FALSE)
+      
     },
     contentType = "text/csv"
   )
-  #3. QC report, dependennt on data$stats:
-  observeEvent(
-    data$stats,
-    {
-      req(data$no_cond)
+  
+  #3. Generate QC data (generateQCreport()), create QC report (QCreport.rmd template) and download QC report. (Done)
+  output$QC_report <- shiny::downloadHandler(
+
+    filename = function() {
+      
+      file <- "QCreport.pdf"
+      return(file)
+      
+    },
+    content = function(file) {
       
       data$QC_report <- generateQCreport(data$stats, no_cond = data$no_cond, no_rep = data$no_rep)
+    
+      tempReport <- file.path(tempdir(), "QCreport.rmd")
       
-      output$QC_report <- downloadHandler(
-        #For PDF output, change this to "report.pdf"
-        filename = "QCreport.pdf",
-        content = function(file) {
-          # Copy the report file to a temporary directory before processing it, in
-          # case we don't have write permissions to the current working dir (which
-          # can happen when deployed).
-          tempReport <- file.path(tempdir(), "QCreport.rmd")
-          file.copy("QCreport.rmd", tempReport, overwrite = TRUE)
-          # Set up param eters to pass to Rmd document
-          params <- list(stats = data$stats, no_cond = data$no_cond, no_rep = data$no_rep, 
-                         QC_report = data$QC_report, log = input$log2, normalization = normalization_type$type,
-                         file = input$in_file)
-          
-          shiny::withProgress(message = "Quality Control Report: ", min = 0, max = 12, value = 0,{
-            
-            # Knit the document, passing in the `params` list, and eval it in a
-            # child of the global environment (this isolates the code in the document
-            # from the code in this app).
-            rmarkdown::render(tempReport, output_file = file,
-                              params = params,
-                              envir = new.env(parent = globalenv()))
-            
-            shiny::incProgress(1, detail = "DONE!")
-          })
-        }
-      )
+      file.copy("QCreport.rmd", tempReport, overwrite = TRUE)
+
+      params <- list(stats = data$stats, 
+                     no_cond = data$no_cond, 
+                     no_rep = data$no_rep, 
+                     QC_report = data$QC_report, 
+                     log = input$log2, 
+                     normalization = normalization_type$type,
+                     file = input$in_file)
       
-    })
+      shiny::withProgress(message = "Quality Control Report: ", min = 0, max = 12, value = 0,{
+        
+        output <- rmarkdown::render(input = tempReport, 
+                                    params = params,
+                                    envir = new.env(parent = globalenv()))
+        
+        file.copy(output, file)
+        
+        shiny::incProgress(1, detail = "DONE!")
+        
+      })
+    }
+  )
+  
+  
   
   ################ ################ ################ DATA LOADING AND WRANGLING ################ ################ ################
   
@@ -463,7 +528,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -532,7 +597,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -592,7 +657,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -684,7 +749,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -757,7 +822,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -826,7 +891,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -895,7 +960,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -910,85 +975,92 @@ function(input,output,session){
   )
   
   ################ Tab 2 ################    
-  #1. Main table with user complexes
-  observeEvent(
-    input$run_analysis,
-    {
-      output$user_complexes <- DT::renderDataTable({
-        req(data$user_input, data$stats)
-        withProgress(message = 'Analysing protein complexes in your data', min = 0, max = 4, value = 0, {
-          if(input$database == "CORUM"){
-            database <<- corum_prepared
-          }
-          else if(input$database == "EBI Complex Portal"){
-            database <<- complex_portal_prepared
-          }
-          else if(input$database == "User defined database"){
-            req(input$user_database$datapath)
-            database <<- prepareUserDB(input$user_database$datapath)
-          }
-          incProgress(1, detail = "DB established.")
-          index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism==input$species,]$Subunits)))
-          data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
-          incProgress(1, detail = "DB search.")
+  #1. Main table to display protein complexes. (Body) (Done)
+  shiny::observeEvent(input$run_analysis, {
+    
+    output$user_complexes <- DT::renderDataTable({
+      
+      shiny::req(data$user_input, data$stats)
+      
+        shiny::withProgress(message = "Analysing protein complexes in your data", min = 0, max = 4, value = 0, {
           
-          ## enable buttons for sending human proteins to CoExpresso
+          if(input$database == "CORUM"){
+            
+            database <- corum_prepared
+          
+          } else if(input$database == "EBI Complex Portal"){
+            
+            database <- complex_portal_prepared
+          
+          } else if(input$database == "User defined database"){
+            
+            shiny::req(input$user_database$datapath)
+            database <- prepareUserDB(input$user_database$datapath)
+            
+          }
+          
+          shiny::incProgress(1, detail = "DB established.")
+          index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism == input$species,]$Subunits)))
+          data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
+          shiny::incProgress(1, detail = "DB search")
+          
+          # Enable buttons for sending human proteins to CoExpresso
           if(input$species == "Homo sapiens" | input$species == "Human") {
+            
             shinyjs::enable("CoExpresso")
             shinyjs::enable("CoExpressoFull")
+            
           } else {
+            
             shinyjs::disable("CoExpresso")
             shinyjs::disable("CoExpressoFull")
+            
           }
           
           data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
+
           if (is.null(data$f_database)) {
-            DT::datatable(data.frame(error="No complexes found! Maybe wrong species"))
-            return()
+            
+            return(DT::datatable(data.frame(Warning = paste0("No complexes found for ", input$species, "."), stringsAsFactors = F),
+                                 caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;", "Table 2: ", htmltools::em("Protein complexes found in the input dataset (using 0 proteins)"))) )
+            shiny::incProgress(2, "No complexes found.")
+            
+          } else {
+            
+            data$no_complexes <- length(data$f_database[,1])  
+            data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
+            shiny::incProgress(1, "Complexes expression calculation.")
+            data$f_db_farms <- cbind(data$f_database, complexDBfarms(f_database = data$f_database, stats = data$f_stats, no_cond = data$no_cond, no_rep = data$no_rep))
+            shiny::incProgress(1, "Data aggregation.")
+            #Change a vector to string for better display (subunits)
+            data$for_display <- concatinateSubunits(filtered_database = data$f_db_farms)
+            
+            #Hover labels for the table
+            container <- generateColLabels(data$no_cond, database = input$database)
+            shiny::req(data$for_display)
+            
+            
+            DT::datatable(data$for_display, 
+                          selection = list(mode = "single",selected = 1), 
+                          height = 400,
+                          filter = "top",
+                          container = container,
+                          caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;", "Table 2: ", htmltools::em(paste0("Protein complexes found in the input dataset", " (using ", data$no_proteins_used, " proteins)"))),
+                          options = list(scrollX = TRUE,
+                                         scrollY = TRUE,
+                                         columnDefs = list(list(targets = c(6,7),
+                                                                render = DT::JS("function(data, type, row, meta) {", "return type === 'display' && data.length > 15 ?",
+                                                                                "'<span title=\"' + data + '\">' + data.substr(0, 15) + '...</span>' : data;", "}")),
+                                                      list(targets = c(1,3,4,5), width = "35px"),
+                                                      list(targets = c(2), width = "200px", render = DT::JS("function(data, type, row, meta) {", "return type === 'display' && data.length > 30 ?",
+                                                                                                            "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;", "}")))
+                                        )
+                          )
           }
-          data$no_complexes <- length(data$f_database[,1])                                   
-          data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
-          incProgress(1, "Complexes expression calculation.")
-          data$f_db_farms <- cbind(data$f_database, complexDBfarms(f_database = data$f_database, stats = data$f_stats, no_cond = data$no_cond, no_rep = data$no_rep))
-          incProgress(1, "Data aggregation.")
-          #Change a vector to string for better display (subunits)
-          data$for_display <- concatinateSubunits(data$f_db_farms)
-        })
-        #Hover labels for the table
-        container <- generateColLabels(data$no_cond, database = input$database)
-        req(data$for_display)
-        DT::datatable(data$for_display , 
-                      selection = list(mode = "single",selected = 1), 
-                      height = 400,
-                      filter = 'top',
-                      container = container,
-                      extensions = c('ColReorder','Buttons'),
-                      caption = htmltools::tags$caption(
-                        style = 'caption-side: top; text-align: left;',
-                        'Table 2: ', htmltools::em(paste0('Protein complexes found in the input dataset',
-                                                          ' (using ', data$no_proteins_used,' proteins)'))),
-                      options = list(dom = 'Bfrtip',
-                                     scrollX = TRUE,
-                                     scrollY = TRUE,
-                                     colReorder = TRUE,buttons = list('copy', 'print', list(extend = 'collection',
-                                                                                            buttons = c('csv', 'excel', 'pdf'),
-                                                                                            text = 'Download')),
-                                     columnDefs = list(
-                                       list(
-                                         targets = c(6,7),
-                                         render = JS(
-                                           "function(data, type, row, meta) {",
-                                           "return type === 'display' && data.length > 15 ?",
-                                           "'<span title=\"' + data + '\">' + data.substr(0, 15) + '...</span>' : data;",
-                                           "}")),
-                                       list(targets = c(1,3,4,5), width = "35px"),
-                                       list(targets = c(2), width = "200px",render = JS(
-                                         "function(data, type, row, meta) {",
-                                         "return type === 'display' && data.length > 30 ?",
-                                         "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;",
-                                         "}")))                                 
-                      ))})
+
+      })
     })
+  })
   
   
   #2. Star graph complex
@@ -1045,7 +1117,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1110,7 +1182,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1182,7 +1254,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1272,7 +1344,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1349,35 +1421,59 @@ function(input,output,session){
                                  scrollY = TRUE))
   })
   
-  #9. Complex name output - 2, because you cant render the same output twice
-  output$complex_name <- renderText({
-    as.character(data$f_database[input$user_complexes_rows_selected,"Complex_Name"])
-  })
-  output$complex_name1 <- renderText({
-    as.character(data$f_database[input$user_complexes_rows_selected,"Complex_Name"])
+  #9. Complex names as headers for expression and correlation heatmaps. (Body) (Done)
+  output$complex_name <- shiny::renderText({
+    
+    paste0("Complex: ", as.character(data$f_database[input$user_complexes_rows_selected, "Complex_Name"]))
+    
   })
   
-  #10. Expression heatmap
-  output$expression_heatmap <- renderPlotly({
+  output$complex_name1 <- shiny::renderText({
     
-    req(expression_heatmap_reactive())
+    paste0("Complex: ", as.character(data$f_database[input$user_complexes_rows_selected, "Complex_Name"]))
+    
+  })
+  
+  #10. Expression heatmap (Body) (Done)
+  output$expression_heatmap <- plotly::renderPlotly({
+    
+    shiny::req(expression_heatmap_reactive())
     return(expression_heatmap_reactive())
     
   })
   
-  #Reactive expression heat map
-  expression_heatmap_reactive <- reactive({
+  #Reactive protein complex expression heatmap. (Body) (Done)
+  expression_heatmap_reactive <- shiny::reactive({
     
-    req(data$f_database$NQS[input$user_complexes_rows_selected]>=2)
-    return(plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
+    shiny::req(data$f_database$NQS[input$user_complexes_rows_selected] >= 2)
+    shiny::req(data$no_cond >= 2)
+    
+    
+    if(input$d_measure == "minkowski"){
+
+      shiny::req(input$minkowski_p)
+      
+      p <- plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
                               index_vector = data$multiline_plot$index_vector,
                               stats   = data$f_stats,
                               no_cond = data$no_cond,
                               distance_measure = input$d_measure,
                               agg_method = input$agg_method,
-                              p = ifelse(test = input$d_measure == "minkowski", 
-                                         yes = input$minkowski_p, 
-                                         no = NULL))$heatmap)
+                              p = as.numeric(input$minkowski_p))
+
+    } else {
+
+      p <- plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
+                              index_vector = data$multiline_plot$index_vector,
+                              stats   = data$f_stats,
+                              no_cond = data$no_cond,
+                              distance_measure = input$d_measure,
+                              agg_method = input$agg_method)
+
+
+    }
+
+    return(p$heatmap)
     
   })
   
@@ -1416,7 +1512,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1489,7 +1585,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1555,7 +1651,7 @@ function(input,output,session){
         shiny::incProgress(1, detail = "PDF rendering.")
         htmlwidgets::saveWidget(p, temp_name)
         
-        webshot::webshot(url = temp_name, file = file)
+        webshot2::webshot(url = temp_name, file = file)
         
         shiny::incProgress(1, detail = "PDF file is ready!")
         unlink(temp_name)
@@ -1569,12 +1665,14 @@ function(input,output,session){
     
   )
   
-  #13. Summary - top 5 table
-  output$changing_table <- renderDataTable({
-    req(data$f_db_farms, input$summary_cond)
-    changingTable(f_db_farms = data$f_db_farms,cond = input$summary_cond, noise_th = input$noise_th)
+  #13. Summary - top 5 table (Body) (Done)
+  output$changing_table <- DT::renderDataTable({
+    
+    shiny::req(data$f_db_farms, input$summary_cond)
+    changingTable(f_db_farms = data$f_db_farms, cond = input$summary_cond, noise_th = input$noise_th, FC_th = input$FC_th)
     
   })
+  
   #14. Summary - text
   output$summary <- renderText({
     req(data$f_db_farms, data$no_cond, data$no_rep, input$summary_cond, input$noise_th)

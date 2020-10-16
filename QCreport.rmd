@@ -1,10 +1,10 @@
 ---
 title: "ComplexBrowser - QC Report"
-output: 
-  pdf_document:
-    latex_engine: xelatex
+output:
+ pdf_document:
+    latex_engine: pdflatex
 mainfont: Arial
-fontsize: 12pt 
+fontsize: 12pt
 params:
   stats: NA
   file: NA
@@ -13,7 +13,7 @@ params:
   QC_report: NA
   log: NA
   normalization: NA
-  colors: !r c('#e6194b', '#3cb44b','#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', 
+  colors: !r c('#e6194b', '#3cb44b','#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6',
                '#ffe119','#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8',
                '#800000','#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080')
 ---

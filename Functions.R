@@ -9,7 +9,6 @@ library(pracma)
 library(preprocessCore)
 library(limma)
 library(qvalue)
-
 ################ ################ ################ Updating complex portal, preparing databases ################ ################ ################
 
 #1. Connects to complex portal and downloads all the .tsv files with complex information
@@ -388,29 +387,8 @@ filterDatabase <- function(f_data, database, organism){
   }
 }
 
-#9. Quality report
+#9. Create data for the quality control report. (Done)
 generateQCreport <- function(stats, no_cond, no_rep){
-  #Decide for the amount of rows/columns in R plots for the QC report
-  # if(no_cond == 2){
-  #   r = 1
-  #   c = 2
-  # }
-  # else if(no_cond == 3){
-  #   r = 1
-  #   c = 3
-  # }
-  # else if(no_cond == 4){
-  #   r = 2
-  #   c = 2
-  # }
-  # else if(no_cond >4 & no_cond%%3!=0){
-  #   c = 3
-  #   r = no_cond%/%3+1
-  # }
-  # else{
-  #   c = 3
-  #   r = no_cond%/%3
-  # }
   
   if(no_cond < 2){
     
@@ -460,7 +438,9 @@ generateQCreport <- function(stats, no_cond, no_rep){
   FC_table <- round(FC_table, 3)
   colnames(FC_table) <- paste0("FC C", 2:no_cond, "/C1")
   rownames(FC_table) <- c("Min", "Mean", "Median", "Max")
+  
   return(list(r = r, c = c, VAL_t= VAL_table, CV_t = CV_table, fc_t = FC_table, qValue_t = qValue_table))
+  
 }
 
 ################ ################ ################ DATA VISUALIZATION - QC ################ ################ ################
@@ -791,6 +771,9 @@ multilinePlot <- function(f_db, stats, row, no_cond, scale = c("Log2 Intensity",
 
   if(ncol(mx) >= 2){
     
+    #Solves the problem when variance is 0.
+    mx[apply(mx, 1, sd, na.rm = T) == 0, 1] <- mx[apply(mx, 1, sd, na.rm = T) == 0, 1] + 0.0001
+    
     FARMS <- fast.Farms(probes = t(mx))
     probes_adj <- (FARMS$loadings*mx)/sum(FARMS$loadings, na.rm = T)
     complex_expr <- rowSums(probes_adj, na.rm = T)
@@ -829,50 +812,48 @@ concatinateSubunits <- function(filtered_database){
   return(filtered_database)
 }
 
-#5. Log2(R), mean normalized (row-wise) heat map with custom colour palette
-plotComplexHeatmap <- function(names_vector, index_vector, stats, no_cond, distance_measure, agg_method, p=2){
-  expr_array <- stats$log2_means[index_vector,,drop=F]
+#5. Log2(R), mean normalized (row-wise) heat map of protein expression with custom color palette. (Done)
+plotComplexHeatmap <- function(names_vector, index_vector, stats, no_cond, distance_measure, agg_method, p = 4){
+  
+  
+  expr_array <- stats$log2_means[index_vector, ,drop = F]
   expr_array[is.na(expr_array)] <- 0
-  norm_expr_array <- round(t(apply(expr_array, 1, function(x) x-mean(x, na.rm = TRUE))),4)
-  if (length(expr_array)>0) {
-    rownames(norm_expr_array) <- names_vector
-    colnames(norm_expr_array) <- paste0("Norm. log2(R) C", 1:no_cond)
-    if(distance_measure != "minkowski"){
-      return(list(heatmap = heatmaply::heatmaply(norm_expr_array, 
-                                                 dist_method = distance_measure, 
-                                                 hclust_method = agg_method,
-                                                 Colv = FALSE,
-                                                 xlab = "Condition",
-                                                 ylab = "ProteinID",
-                                                 main = "Protein expression heatmap - normalized mean log2 intensities",
-                                                 fontsize_row = 6,
-                                                 fontsize_col = 6,
-                                                 margins = c(80,80,NA,0),
-                                                 col = cool_warm), expr_array = expr_array
-      ))
-    }
-    else{
-      row_dend  <- expr_array %>% 
-        dist(method = "minkowski", p = p) %>% 
-        hclust %>% as.dendrogram
-      return(list(heatmap = heatmaply::heatmaply(norm_expr_array, 
-                                                 hclust_method = agg_method,
-                                                 Colv = FALSE,
-                                                 Rowv = row_dend,
-                                                 xlab = "Condition",
-                                                 ylab = "ProteinID",
-                                                 main = "Protein expression heatmap - normalized mean log2 intensities",
-                                                 fontsize_row = 6,
-                                                 fontsize_col = 6,
-                                                 margins = c(80,80,NA,0),
-                                                 col = cool_warm), expr_array = expr_array
-      ))
-    }
+  norm_expr_array <- round(t(apply(expr_array, 1, function(x) x-mean(x, na.rm = TRUE))), 4)
+  
+    
+  rownames(norm_expr_array) <- names_vector
+  colnames(norm_expr_array) <- paste0("Norm. log2(R) C", 1:no_cond)
+    
+  if(distance_measure != "minkowski"){
+      
+    clust <- hclust(d = dist(norm_expr_array, method = distance_measure), method = agg_method)
+    row_dend <- as.dendrogram(clust)
+      
+  } else {
+      
+    clust <- hclust(d = dist(norm_expr_array, method = distance_measure, p = p), method = agg_method)
+    row_dend <- as.dendrogram(clust)
+      
   }
+    
+  p <- heatmaply::heatmaply(norm_expr_array,
+                            Colv = FALSE,
+                            Rowv = row_dend,
+                            xlab = "Condition",
+                            ylab = "ProteinID",
+                            main = "Protein expression heatmap - normalized mean log2 intensities",
+                            fontsize_row = 6,
+                            fontsize_col = 6,
+                            margins = c(80,80,NA,0),
+                            col = cool_warm)
+    
+  return(list(heatmap = p, expr_array = expr_array))
+    
+
 }
 
 #6. Heatmap of correlation (co-expression) between subunits of 1 selected complex
-plotCorrelationHeatmap <- function(names_vector, index_vector, stats, correlation_measure, distance_measure, agg_method, p=2){
+plotCorrelationHeatmap <- function(names_vector, index_vector, stats, correlation_measure, distance_measure, agg_method, p = 4){
   means_array <- stats$log2_means[index_vector,]
   means_array <- round(t(apply(means_array, 1, function(x) x-mean(x, na.rm = TRUE))),4)
   rownames(means_array) <- names_vector
@@ -1068,7 +1049,7 @@ fast.Farms <- function(probes, weight = 0.1 , mu = 0.1, max_iter = 1000,
 }
 #12. FARMS for 1 complex
 complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
-  if(f_database[row,"NQS"]>=3){
+  if(f_database[row,"NQS"]>=2){
     subunits <- f_database[row,]$Subunits[[1]]
     subunits <- subunits[subunits %in% proteins]
     subunits_indexes <- sapply(subunits, function(x) match(x, proteins))
@@ -1214,27 +1195,67 @@ regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPR
                                                  'toggleSpikelines'))
 }
 
-#16. Top 5 up/down
-changingTable <- function(f_db_farms, cond, noise_th){
-  # Include noise threshold
-  f_db_farms_n <- filter(f_db_farms, Noise <= noise_th)
-  bottom5_indexes <- order(f_db_farms_n[,(8+(cond-1))])[5:1]
-  top5_indexes <- order(f_db_farms_n[,(8+(cond-1))], decreasing = TRUE)[1:5]
-  top_changing <- c(top5_indexes, bottom5_indexes)
-  n_col <- length(f_db_farms_n[1,])
-  complex_table <- f_db_farms_n[top_changing,c(2,4,9:n_col)]
-  n_col <- length(complex_table)
-  top_table <- DT::datatable(data = complex_table, rownames = FALSE, extensions = 'Buttons',
+#16. Top 5 up/down summary report (Body) (Done)
+changingTable <- function(f_db_farms, cond, noise_th, FC_th){
+  
+  f_db_farms_t <- f_db_farms[ , c(2,4,9:ncol(f_db_farms))]
+  # Filter by noise threshold
+  f_db_farms_t <- dplyr::filter(f_db_farms_t, Noise <= noise_th)
+  # Filter by FC up
+  up <- f_db_farms_t[f_db_farms_t[ , (1+cond)] >= FC_th, ]
+  up5 <- rbind(NA, up[order(up[ , (1+cond)], decreasing = T)[1:5], ])
+  up5$Complex_Name <- as.character(up5$Complex_Name)
+  up5[1,1] <- "Top5 Up"
+
+  # Filter by FC down
+  down <- f_db_farms_t[f_db_farms_t[ , (1+cond)] <= -FC_th, ]
+  down5 <- rbind(NA, down[order(down[ , (1+cond)], decreasing = F)[1:5], ])
+  down5$Complex_Name <- as.character(down5$Complex_Name)
+  down5[1,1] <- "Top5 Down"
+  
+  top5 <- rbind(up5, down5)
+
+  top_table <- DT::datatable(data = top5, rownames = FALSE, extensions = 'Buttons',
                              options = list(dom = 'Bfrtip',
                                             scrollY="300px", 
                                             scrollX = TRUE, 
                                             searching = FALSE,
+                                            pageLength = 12, lengthChange = FALSE,
                                             buttons = list('copy', 'print', list(extend = 'collection',
                                                                                  buttons = c('csv', 'excel', 'pdf'),
-                                                                                 text = 'Download'))))
+                                                                                 text = 'Download')))
+                            ) %>% DT::formatStyle(colnames(top5), height = 20) %>% 
+                                  DT::formatStyle(colnames(top5)[1], target = "row", backgroundColor = DT::styleEqual(c("Top5 Up", "Top5 Down"), c(ggplot2::alpha("green", 0.2), ggplot2::alpha("red", 0.2)))) %>%
+                                  DT::formatStyle(colnames(top5)[(1+cond)], colnames(top5)[1],  
+                                                  backgroundColor = DT::styleEqual(setdiff(top5[,1], c("Top5 Up", "Top5 Down")), 
+                                                                                   rep(ggplot2::alpha("yellow", 0.2), length(unique(setdiff(top5[,1], c("Top5 Up", "Top5 Down")))))))
+  
   return(top_table)
 }
 
 
 
+####################################### EXTRA FUNCTIONS ############################################
 
+#Function to add tooltip per selectizeInput choice. (Taken from: https://github.com/ebailey78/shinyBS/pull/70)
+selectizeTooltip <- function(id, choice, title, placement = "bottom", trigger = "hover", options = NULL){
+  
+  options = shinyBS:::buildTooltipOrPopoverOptionsList(title, placement, trigger, options)
+  options = paste0("{'", paste(names(options), options, sep = "': '", collapse = "', '"), "'}")
+  bsTag <- shiny::tags$script(shiny::HTML(paste0("
+    $(document).ready(function() {
+      var opts = $.extend(", options, ", {html: true});
+      var selectizeParent = document.getElementById('", id, "').parentElement;
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation){
+          $(mutation.addedNodes).filter('div').filter(function(){return(this.getAttribute('data-value') == '", choice, "');}).each(function() {
+            $(this).tooltip('destroy');
+            $(this).tooltip(opts);
+          });
+        });
+      });
+      observer.observe(selectizeParent, { subtree: true, childList: true });
+    });
+  ")))
+  htmltools::attachDependencies(bsTag, shinyBS:::shinyBSDep)
+}
