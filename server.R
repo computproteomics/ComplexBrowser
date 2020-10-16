@@ -285,11 +285,8 @@ function(input,output,session){
     content = function(file) {
       
       data$QC_report <- generateQCreport(data$stats, no_cond = data$no_cond, no_rep = data$no_rep)
-    
       tempReport <- file.path(tempdir(), "QCreport.rmd")
-      
       file.copy("QCreport.rmd", tempReport, overwrite = TRUE)
-
       params <- list(stats = data$stats, 
                      no_cond = data$no_cond, 
                      no_rep = data$no_rep, 
