@@ -1682,7 +1682,7 @@ function(input,output,session){
   
   #15. Submission of human uniprot accession to CoExpresso
   observeEvent(input$CoExpresso,{
-    url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
+    url <- 'http://computproteomics.bmb.sdu.dk:8192/app_direct/CoExpresso/'
     
     complex_name <- data$f_database$Complex_Name[input$user_complexes_rows_selected]
     subunits <- data$f_database$Subunits[[input$user_complexes_rows_selected]]
