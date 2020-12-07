@@ -1694,7 +1694,7 @@ function(input,output,session){
   })
   
   observeEvent(input$CoExpressoFull,{
-    url <- 'http://computproteomics.bmb.sdu.dk/Apps/CoExpresso'
+    url <- 'http://computproteomics.bmb.sdu.dk:8192/app_direct/CoExpresso/'
     CoExpressoMessage <- toJSON(list(prot_list=data$f_database$Subunits[input$user_complexes_rows_selected]))
     #print(data$f_database$Subunits[input$user_complexes_rows_selected])
     shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
