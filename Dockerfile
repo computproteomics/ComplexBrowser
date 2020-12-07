@@ -37,5 +37,7 @@ COPY *csv  /srv/shiny-server/
 COPY *pdf  /srv/shiny-server/
 COPY *.rmd /srv/shiny-server/
 RUN mkdir /srv/shiny-server/styling
+RUN mkdir /srv/shiny-server/www
+COPY www/* /srv/shiny-server/www/
 COPY styling/* /srv/shiny-server/styling/
 
