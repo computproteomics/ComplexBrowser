@@ -217,7 +217,12 @@ limma_unpaired <- function(data, no_cond, no_rep, reference = 1){
   pvalues <- lm.bayes$p.value
   qlvalues <- matrix(NA,nrow=nrow(pvalues),ncol=ncol(pvalues),dimnames=dimnames(pvalues))
   for (i in 1:ncol(pvalues)) {
+    # change to benjamini-hochberg when having < 100 values
+    if (nrow(pvalues) > 100) {
     tqs <- qvalue::qvalue(na.omit(pvalues[,i]))$qvalues
+    } else {
+      tqs <- p.adjust(pvalues[,i], method="BH")
+    }
     qlvalues[names(tqs),i] <- tqs
   }
   return(qlvalues)
