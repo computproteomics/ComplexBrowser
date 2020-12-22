@@ -492,6 +492,7 @@ distrPlotlyBox <- function(data, no_rep, no_cond){
 
 #2. Barplot with information about missing values
 missingValuePlotly <- function(data, no_cond, no_rep){
+  if (length(data) > 0) {
   data <- data[,2:(no_cond*no_rep+1)]
   no_na_column <- colSums(is.na(data))
   barplot_df <- data.frame(no_NA = unlist(no_na_column), sample = colnames(data))
@@ -514,6 +515,7 @@ missingValuePlotly <- function(data, no_cond, no_rep){
                                                         'hoverCompareCartesian',
                                                         'hoverClosestCartesian',
                                                         'toggleSpikelines')))
+  }
 }
 
 #3. q Value vs no. significant features plot

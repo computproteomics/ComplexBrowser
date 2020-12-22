@@ -5,6 +5,8 @@ source("Functions.R")
 
 options(shiny.maxRequestSize=2000*1024^2)
 
+
+
 function(input,output,session){
   
   ####################################### ANNOTATIONS ############################################
@@ -496,12 +498,12 @@ function(input,output,session){
         data$file_indicator <- TRUE
         output$fileInText <- renderText({
           isolate({
-          validate(need(!is.null(expr_matr), "Uploaded data empty"))
-          validate(need(length(expr_matr)>1, "Uploaded data does not contain multiple columns"))
-          validate(need(sum(duplicated(expr_matr[[1]]),na.rm=T)==0,"Duplicated feature names in first column!"))
+          shiny::validate(need(!is.null(expr_matr), "Uploaded data empty"))
+          shiny::validate(need(length(expr_matr)>1, "Uploaded data does not contain multiple columns"))
+          shiny::validate(need(sum(duplicated(expr_matr[[1]]),na.rm=T)==0,"Duplicated feature names in first column!"))
           tdat <- expr_matr[[1]]
           for (i in 2:length(expr_matr)) {
-            validate(need(length(expr_matr[[i]]) == length(expr_matr[[1]]),
+            shiny::validate(need(length(expr_matr[[i]]) == length(expr_matr[[1]]),
                           paste("Wrong array length of sample", names(expr_matr)[i])))
             tdat <- data.frame(tdat, as.numeric(expr_matr[[i]]))
           }
@@ -521,15 +523,15 @@ function(input,output,session){
           if (withStats) {
             stats <- jsonmessage[["stat_matrix"]]
             # setting data and parameters
-            validate(need(!is.null(stats), "Uploaded statistics data empty"))
+            shiny::validate(need(!is.null(stats), "Uploaded statistics data empty"))
             tdat <- stats[[1]]
             for (i in 2:length(stats)) {
-              validate(need(length(stats[[i]]) == length(stats[[1]]),
+              shiny::validate(need(length(stats[[i]]) == length(stats[[1]]),
                             paste("Wrong array length of sample", names(stats)[i])))
               tdat <- data.frame(tdat, as.numeric(stats[[i]]))
             }
             colnames(tdat) <- names(stats)
-            validate(need(nrow(tdat) == nrow(data$user_input), paste("statistical table does not have the same number of rows")))
+            shiny::validate(need(nrow(tdat) == nrow(data$user_input), paste("statistical table does not have the same number of rows")))
             data$user_input <- cbind(data$user_input, tdat)
           }            
           data$stats <- calculateStatistics(data = data$user_input, 
@@ -560,11 +562,11 @@ function(input,output,session){
           return(paste("Loaded external data"))
         })
       })
-      
+        shiny::incProgress(1, detail = "Data loaded.")
+        
     })
   
   
-  shiny::incProgress(1, detail = "Data loaded.")
   
 })
 
@@ -644,8 +646,9 @@ output$NA_barplot <- renderPlotly({
 NA_barplot_reactive <- reactive({
   
   req(data$file_indicator == TRUE)
-  
-  p <- missingValuePlotly(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep = data$no_rep)
+  p <- NULL
+  if(!is.null(data))
+    p <- missingValuePlotly(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep = data$no_rep)
   
   return(p)
   
