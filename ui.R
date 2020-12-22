@@ -34,6 +34,25 @@ header <- shinydashboard::dashboardHeader(title = "ComplexBrowser", titleWidth =
 
 # Interface sidebar, two panels, depending on the tabs clicked. (Done)
 sidebar <- shinydashboard::dashboardSidebar(width = 250, 
+                                            tags$head(tags$script('
+    Shiny.addCustomMessageHandler("resetFileInputHandler", function(x) {      
+        var id = "#" + x + "_progress";
+        var idFile = "#" + x;
+        var idBar = id + " .bar";
+        $(id).css("visibility", "hidden");
+        $(idBar).css("width", "0%");
+        $(id).addClass("active");
+        $(idFile).replaceWith(idFile = $(idFile).clone(true));
+    });
+ window.addEventListener("message", displayMessage, false);
+ function displayMessage(evt) { 
+ console.log(evt.data)
+ var inmessage = JSON.parse(evt.data);
+ console.log(inmessage); 
+ console.log("read message");
+ Shiny.setInputValue("extdata", evt.data);
+}
+  ')),
                                             shinydashboard::sidebarMenu(id = "sidebar_menu",
                                               shiny::tags$head(shiny::tags$style(shiny::HTML(".skin-black .sidebar-menu>li>a {color: #DD9977!important;};"))),
                                               shiny::tags$head(shiny::tags$style(shiny::HTML(".sidebar-menu .text-success {color:#DD9977;}"))),
@@ -44,6 +63,7 @@ sidebar <- shinydashboard::dashboardSidebar(width = 250,
                                                                       shiny::tags$div(style = "text-align:center;", shiny::tags$h5(id = "input_text", shiny::tags$b("Select input file "))),
                                                                       shinyBS::bsTooltip(id = "input_text", title = "Input file in .csv or .txt format. First column must contain unique protein identifiers and the sebsequent columns the quantitative data. Optionally, a statisticall score column can be added at the end."),
                                                                       shiny::fileInput(inputId = "in_file", label = NULL, accept = c("text/csv","text/comma-separated-values,text/plain",".csv") ),
+                                                                      textOutput("fileInText"),
                                                                       shiny::actionButton(inputId = "load_example", label = "Load example", width = "220px", icon = shiny::icon("upload")),
                                                                       shinyBS::bsTooltip(id = "load_example", title= "Taken from <i>Integrative Proteomics and Phosphoproteomics Profiling Reveals Dynamic Signaling Networks and Bioenergetics Pathways Underlying T Cell Activation</i> Immunity, 2017 "),
                                                                       shiny::actionButton(inputId = "run_QC", label = "Run QC", width = "220px", icon = shiny::icon("bar-chart")),
