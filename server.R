@@ -1777,7 +1777,7 @@ output$summary <- renderText({
 
 #15. Submission of human uniprot accession to CoExpresso
 observeEvent(input$CoExpresso,{
-  url <- 'http://computproteomics.bmb.sdu.dk:8192/app_direct/CoExpresso/'
+  url <- 'http://computproteomics.bmb.sdu.dk:443/app_direct/CoExpresso/'
   
   complex_name <- data$f_database$Complex_Name[input$user_complexes_rows_selected]
   subunits <- data$f_database$Subunits[[input$user_complexes_rows_selected]]
@@ -1789,7 +1789,7 @@ observeEvent(input$CoExpresso,{
 })
 
 observeEvent(input$CoExpressoFull,{
-  url <- 'http://computproteomics.bmb.sdu.dk:8192/app_direct/CoExpresso/'
+  url <- 'http://computproteomics.bmb.sdu.dk:443/app_direct/CoExpresso/'
   CoExpressoMessage <- toJSON(list(prot_list=data$f_database$Subunits[input$user_complexes_rows_selected]))
   #print(data$f_database$Subunits[input$user_complexes_rows_selected])
   shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
