@@ -1,4 +1,3 @@
-source("Functions.R")
 #Developed by Wojciech Michalak as MSc thesis project
 #"Bioinformatics in Proteomics: A web based platform for supervised analysis focused on protein complexes"
 # June 2018
@@ -57,6 +56,7 @@ function(input,output,session){
   
   #Initiate empty reactiveValues object to store all data and results.
   data <- shiny::reactiveValues()
+  data$no_cond <- data$no_rep <- 2
   user_input <- NULL
   data$file_indicator <- FALSE
   normalization_type <- shiny::reactiveValues(type = NA)
