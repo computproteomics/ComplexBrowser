@@ -473,6 +473,8 @@ distrPlotlyBox <- function(data, no_rep, no_cond){
                              "Intensity",
                              "Condition",
                              "Replicate")
+  melted_data$Sample <- factor(melted_data$Sample, levels = colnames(data))
+  melted_data$Condition <- factor(melted_data$Condition, levels = paste0("C", 1:no_cond))
   return(list( plot = plotly::plot_ly(data = melted_data, 
                                       type = "box", 
                                       y = ~Intensity, 
@@ -495,7 +497,8 @@ missingValuePlotly <- function(data, no_cond, no_rep){
   if (length(data) > 0) {
   data <- data[,2:(no_cond*no_rep+1)]
   no_na_column <- colSums(is.na(data))
-  barplot_df <- data.frame(no_NA = unlist(no_na_column), sample = colnames(data))
+  barplot_df <- data.frame(no_NA = unlist(no_na_column), sample = colnames(data), stringsAsFactors = F)
+  barplot_df$sample <- factor(barplot_df$sample, levels = colnames(data))
   total_na <- sum(no_na_column)
   all <- dim(data)[1] * dim(data)[2]
   return(plotly::plot_ly(x = ~barplot_df$sample, 
@@ -603,6 +606,7 @@ plotlyPCA <- function(data, no_cond, no_rep){
   condition_factors <- paste("C",rep(1:no_cond, each = no_rep), sep = "")
   pca <- prcomp(stats::na.omit(data), scale = TRUE, retx = TRUE)
   pca$rotation <- data.frame(pca$rotation, Condition = condition_factors, Sample = samples)
+  pca$rotation$Condition <- factor(pca$rotation$Condition, levels = unique(as.character(pca$rotation$Condition)))
   return(plotly::plot_ly(x = round(as.numeric(pca$rotation[,1]),3), 
                          y = round(as.numeric(pca$rotation[,2]),3),
                          color = pca$rotation[,(length(pca$rotation[1,])-1)],
@@ -707,6 +711,7 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                    y = means, 
                    sd = SDs)
   df1 <- data.frame(x = abs_labels, y = as.vector(abs_vals))
+  
   #p for plot
   p <- plotly::plot_ly(data = df,
                x = ~x,
@@ -722,7 +727,7 @@ expressionBarplot <- function(proteinID, f_data, stat_list){
                               tickfont  = list (family = "Arial, sans-serif",
                                                 size = 10.5,
                                                 color = "black")),
-                              xaxis = list(title = "Condition"), 
+                              xaxis = list(title = "Condition", categoryorder = "array", categoryarray = df$x), 
                               showlegend = FALSE) %>%
                 plotly::add_trace(data = df1,
                                   x = ~x,
@@ -1179,7 +1184,7 @@ regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPR
   down <- colSums(f_db_farms_fc[,1:(no_cond-1),drop=F] < -FC_th, na.rm = TRUE)
   df <- data.frame(Upregulated = up, 
                    Downregulated = down, 
-                   Condition = names(up))
+                   Condition = names(up), stringsAsFactors = F)
   p <- plotly::plot_ly(df, x = ~Condition, 
                y = ~Upregulated, 
                type = "bar", 
@@ -1193,6 +1198,7 @@ regulatedBarplot <- function(f_db_farms, no_cond, FC_th, noise_th){ #LOWEST EXPR
     plotly::layout(barmode = "group", 
               title = "Regulated complexes", 
               yaxis = list(title = "Number of complexes"),
+              xaxis = list(title = "Condition", categoryorder = "array", categoryarray = df$Condition),
               legend = list(orientation = 'h')) %>%
     plotly::config(showLink = F, 
                    displaylogo = F,
