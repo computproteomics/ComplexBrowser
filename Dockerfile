@@ -13,7 +13,7 @@ RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org');
   update.packages(ask=F); \
   BiocManager::install(c('dplyr','plotly'),ask=F)"
 RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\
-  'shinydashboard','rmarkdown','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','tinytex','colourpicker','biomaRt'),ask=F)"
+  'shinydashboard','rmarkdown','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','tinytex','colourpicker','biomaRt', 'gtools'),ask=F)"
 #RUN R -e "library(devtools);install_version('rmarkdown', version = '1.8')"
 # get recent libraries for figure download and report
 RUN R -e "remotes::install_github('rstudio/webshot2'); tinytex::install_tinytex()"
