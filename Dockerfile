@@ -7,16 +7,16 @@ LABEL description="Docker image of ComplexBrowser implementation on top of shiny
 #RUN rm -rf /var/cache/apt/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
 #RUN apt-get clean && apt-get update && apt-get install -y apt-utils
 
-RUN apt-get update && apt-get install -y libssl-dev liblzma-dev libbz2-dev libicu-dev libxml2 libxml2-dev libglpk-dev texlive-latex-recommended texlive-latex-extra  && apt-get clean 
+RUN apt-get update && apt-get install -y libssl-dev liblzma-dev libbz2-dev libicu-dev libxml2 libxml2-dev libglpk-dev texlive-latex-recommended texlive-latex-extra && apt-get clean 
 
 RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
   update.packages(ask=F); \
   BiocManager::install(c('dplyr','plotly'),ask=F)"
 RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\
-  'shinydashboard','rmarkdown','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','tinytex','colourpicker','biomaRt', 'gtools'),ask=F)"
+  'shinydashboard','rmarkdown','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','tinytex','colourpicker','biomaRt', 'gtools','webshot2'),ask=F)"
 #RUN R -e "library(devtools);install_version('rmarkdown', version = '1.8')"
 # get recent libraries for figure download and report
-RUN R -e "remotes::install_github('rstudio/webshot2'); tinytex::install_tinytex()"
+#RUN R -e "remotes::install_github('rstudio/webshot2'); tinytex::install_tinytex()"
 
 # needs google-chrome to run the webshot
 RUN wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
