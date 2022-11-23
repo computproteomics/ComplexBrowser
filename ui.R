@@ -44,14 +44,17 @@ sidebar <- shinydashboard::dashboardSidebar(width = 250,
         $(id).addClass("active");
         $(idFile).replaceWith(idFile = $(idFile).clone(true));
     });
+    
+     $(document).on("shiny:connected", function() {
  window.addEventListener("message", displayMessage, false);
  function displayMessage(evt) { 
- console.log(evt.data)
  var inmessage = JSON.parse(evt.data);
  console.log(inmessage); 
  console.log("read message");
+ evt.source.postMessage("ComplexBrowser: data received",evt.origin);
  Shiny.setInputValue("extdata", evt.data);
-}
+ };
+});
   ')),
                                             shinydashboard::sidebarMenu(id = "sidebar_menu",
                                               shiny::tags$head(shiny::tags$style(shiny::HTML(".skin-black .sidebar-menu>li>a {color: #DD9977!important;};"))),
