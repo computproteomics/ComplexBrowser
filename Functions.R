@@ -44,17 +44,18 @@ mergeComplexPortal <- function(filepath = getwd()){
 }
 #3. Preparation of Complex Portal - Reorder steps to separate things first and do dplyr selection 
 # as the last step
-prepareComplexPortalDB <- function(RDSfilename = "Complex_Portal.Rds", 
-                                   taxonomyDF = "taxonomyRDS.Rds" ){
+prepareComplexPortalDB <- function(RDSfilename = "Complex_Portal.Rds") {
   if(!require("dplyr")){
     install.packages("dplyr")
   }
   if(!require("stringr")){
     install.packages("stringr")
   }
+  if(!require("taxizedb")){
+    install.packages("taxizedb")
+  }
   cp_db <- readRDS(RDSfilename) #"Complex_Portal.Rds"
-  taxonomy <- readRDS(taxonomyDF) #"taxonomyRDS.Rds"
-  cp_db$Taxonomy.identifier <- sapply(cp_db$Taxonomy.identifier, function(x) x<-taxonomy[,2][taxonomy[1]==as.character(x)])
+  cp_db$Taxonomy.identifier <- taxizedb::taxid2name(as.character(cp_db$Taxonomy.identifier))#sapply(cp_db$Taxonomy.identifier, function(x) x<-taxonomy[,2][taxonomy[1]==as.character(x)])
   cp_db <- cp_db %>%
     dplyr::select(ComplexID = contains("Complex.ac"),
                   Complex_Name = Recommended.name,
