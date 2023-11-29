@@ -55,7 +55,9 @@ prepareComplexPortalDB <- function(RDSfilename = "Complex_Portal.Rds") {
     install.packages("taxizedb")
   }
   cp_db <- readRDS(RDSfilename) #"Complex_Portal.Rds"
-  cp_db$Taxonomy.identifier <- taxizedb::taxid2name(as.character(cp_db$Taxonomy.identifier))#sapply(cp_db$Taxonomy.identifier, function(x) x<-taxonomy[,2][taxonomy[1]==as.character(x)])
+  db_download_ncbi()
+  cp_db$Taxonomy.identifier <- taxizedb::taxid2name(as.character(cp_db$Taxonomy.identifier), verbose=T)
+  #sapply(cp_db$Taxonomy.identifier, function(x) x<-taxonomy[,2][taxonomy[1]==as.character(x)])
   cp_db <- cp_db %>%
     dplyr::select(ComplexID = contains("Complex.ac"),
                   Complex_Name = Recommended.name,
