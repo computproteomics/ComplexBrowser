@@ -9,7 +9,7 @@ LABEL description="Docker image of ComplexBrowser implementation on top of shiny
 
 RUN apt-get update && apt-get install -y libssl-dev liblzma-dev libbz2-dev libicu-dev libxml2 libxml2-dev libglpk-dev texlive-latex-recommended texlive-latex-extra && apt-get clean 
 
-RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
+RUN R -e "install.packages('BiocManager', repos='http://cloud.r-project.org'); \
   update.packages(ask=F); \
   BiocManager::install(c('dplyr','plotly'),ask=F)"
 RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\

@@ -337,7 +337,12 @@ function(input,output,session){
         #Make sure there are no duplicated protein IDs
         else if(sum(duplicated(user_input[,1]))!= 0){
           DT::datatable(
-            data.frame(Error = "Incorrect input format! - Check file for duplicate protein IDs!"))}
+            data.frame(Error = "Incorrect input format! - Check file for duplicate protein IDs!"))
+        }
+        
+        # Remove rows with only missing values
+        user_input <- user_input[rowSums(!is.na(user_input[,2:ncol(user_input)])) > 0,  ]
+        
         
         shiny::incProgress(1, detail = "Data loaded.")
       })
@@ -498,1302 +503,1306 @@ function(input,output,session){
         data$file_indicator <- TRUE
         output$fileInText <- renderText({
           isolate({
-          shiny::validate(need(!is.null(expr_matr), "Uploaded data empty"))
-          shiny::validate(need(length(expr_matr)>1, "Uploaded data does not contain multiple columns"))
-          shiny::validate(need(sum(duplicated(expr_matr[[1]]),na.rm=T)==0,"Duplicated feature names in first column!"))
-          tdat <- expr_matr[[1]]
-          for (i in 2:length(expr_matr)) {
-            shiny::validate(need(length(expr_matr[[i]]) == length(expr_matr[[1]]),
-                          paste("Wrong array length of sample", names(expr_matr)[i])))
-            tdat <- data.frame(tdat, as.numeric(expr_matr[[i]]))
-          }
-          colnames(tdat) <- names(expr_matr)
-          
-          data$user_input <- renameAndSort(data = tdat, 
-                                           no_cond = NumCond,
-                                           no_rep = NumReps,
-                                           qValues = F,
-                                           grouped = isGrouped,
-                                           log2 = T)
-          
-          
-          data$no_cond <- NumCond
-          data$no_rep <- NumReps
-          data$grouped <- isGrouped
-          if (withStats) {
-            stats <- jsonmessage[["stat_matrix"]]
-            # setting data and parameters
-            shiny::validate(need(!is.null(stats), "Uploaded statistics data empty"))
-            tdat <- stats[[1]]
-            for (i in 2:length(stats)) {
-              shiny::validate(need(length(stats[[i]]) == length(stats[[1]]),
-                            paste("Wrong array length of sample", names(stats)[i])))
-              tdat <- data.frame(tdat, as.numeric(stats[[i]]))
+            shiny::validate(need(!is.null(expr_matr), "Uploaded data empty"))
+            shiny::validate(need(length(expr_matr)>1, "Uploaded data does not contain multiple columns"))
+            shiny::validate(need(sum(duplicated(expr_matr[[1]]),na.rm=T)==0,"Duplicated feature names in first column!"))
+            tdat <- expr_matr[[1]]
+            for (i in 2:length(expr_matr)) {
+              shiny::validate(need(length(expr_matr[[i]]) == length(expr_matr[[1]]),
+                                   paste("Wrong array length of sample", names(expr_matr)[i])))
+              tdat <- data.frame(tdat, as.numeric(expr_matr[[i]]))
             }
-            colnames(tdat) <- names(stats)
-            shiny::validate(need(nrow(tdat) == nrow(data$user_input), paste("statistical table does not have the same number of rows")))
-            data$user_input <- cbind(data$user_input, tdat)
-          }            
-          data$stats <- calculateStatistics(data = data$user_input, 
-                                            no_cond = data$no_cond, 
-                                            no_rep =  data$no_rep,
-                                            qValues = withStats,
-                                            normalize = NULL,
-                                            design = ifelse(isPaired, "paired","unpaired"))
-          
-          # change rulers
-          updateSliderInput(session, "no_conditions",value=data$no_cond)
-          updateSliderInput(session, "no_replicates",value=data$no_rep)
-          updateCheckboxInput(session, "log2", value=T)
-          updateCheckboxInput(session, "grouped", value=data$isGrouped)
-          updateCheckboxInput(session, "statistics", value=withStats)
-          updateRadioButtons(session, "design", select=ifelse(isPaired, "paired", "unpaired"))
-          
-          
-          output$input_file <- renderDataTable({
-            DT::datatable( data$input_stats_merged,
-                           options = list(scrollX = TRUE),
-                           caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
-                                                             'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
+            colnames(tdat) <- names(expr_matr)
             
+            # Remove rows with only missing values
+            tdat <- tdat[rowSums(!is.na(tdat[,2:ncol(tdat)])) > 0,  , drop=F]
+            
+            
+            data$user_input <- renameAndSort(data = tdat, 
+                                             no_cond = NumCond,
+                                             no_rep = NumReps,
+                                             qValues = F,
+                                             grouped = isGrouped,
+                                             log2 = T)
+            
+            
+            data$no_cond <- NumCond
+            data$no_rep <- NumReps
+            data$grouped <- isGrouped
+            if (withStats) {
+              stats <- jsonmessage[["stat_matrix"]]
+              # setting data and parameters
+              shiny::validate(need(!is.null(stats), "Uploaded statistics data empty"))
+              tdat <- stats[[1]]
+              for (i in 2:length(stats)) {
+                shiny::validate(need(length(stats[[i]]) == length(stats[[1]]),
+                                     paste("Wrong array length of sample", names(stats)[i])))
+                tdat <- data.frame(tdat, as.numeric(stats[[i]]))
+              }
+              colnames(tdat) <- names(stats)
+              shiny::validate(need(nrow(tdat) == nrow(data$user_input), paste("statistical table does not have the same number of rows")))
+              data$user_input <- cbind(data$user_input, tdat)
+            }            
+            data$stats <- calculateStatistics(data = data$user_input, 
+                                              no_cond = data$no_cond, 
+                                              no_rep =  data$no_rep,
+                                              qValues = withStats,
+                                              normalize = NULL,
+                                              design = ifelse(isPaired, "paired","unpaired"))
+            
+            # change rulers
+            updateSliderInput(session, "no_conditions",value=data$no_cond)
+            updateSliderInput(session, "no_replicates",value=data$no_rep)
+            updateCheckboxInput(session, "log2", value=T)
+            updateCheckboxInput(session, "grouped", value=data$isGrouped)
+            updateCheckboxInput(session, "statistics", value=withStats)
+            updateRadioButtons(session, "design", select=ifelse(isPaired, "paired", "unpaired"))
+            
+            
+            output$input_file <- renderDataTable({
+              DT::datatable( data$input_stats_merged,
+                             options = list(scrollX = TRUE),
+                             caption = htmltools::tags$caption(style = "text-align: left; caption-side: initial;",
+                                                               'Table 1: ', htmltools::em('User data with calculated statistics and changes in protein expression ')))
+              
+            })
+            
+            print("Loaded external data")
+            return(paste("Loaded external data"))
           })
-          
-          print("Loaded external data")
-          return(paste("Loaded external data"))
         })
-      })
         shiny::incProgress(1, detail = "Data loaded.")
         
-    })
-  
-  
-  
-})
-
-
-
-################ ################ ################ DATA VISUALISATION ################ ################ ################
-################ Tab 1 ################  
-#1. Data distribution boxplot
-output$input_boxplot <- renderPlotly({
-  req(data$stats)
-  data$distribution_plot <- distrPlotlyBox(data$stats$absolute_df,
-                                           no_rep = data$no_rep,
-                                           no_cond = data$no_cond)
-  return(data$distribution_plot$plot)
-})
-
-#1.1 Download distribution boxplot
-
-#Create the download UI
-output$input_boxplot_download_cui <- renderUI({
-  
-  req(data$distribution_plot$plot)
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("input_boxplot_download","Download Figure")),
-         bsTooltip("input_boxplot_download", title = "Choose the width and height and download the above distribution boxplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save distribution boxplot in PDF format.
-output$input_boxplot_download <- downloadHandler(
-  
-  filename = function() {
-    
-    paste("DistributionLinePlot_", Sys.time(), ".pdf", collapse = "", sep = "")
-    
-  },
-  content = function(file) {
-    
-    shiny::withProgress(message = "Distribution boxplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+      })
       
-      temp_name <- tempfile(pattern = "distPlot", fileext = ".html")
       
-      p <- data$distribution_plot$plot
-      
-      p$width <- input$input_boxplot_width
-      p$height <- input$input_boxplot_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "input_boxplot_width", value = 1000)
-      updateNumericInput(session, "input_boxplot_height", value = 1000)
       
     })
-  }
   
-)
-
-#2. Missing values barplot
-output$NA_barplot <- renderPlotly({
   
-  req(NA_barplot_reactive())
   
-  return(NA_barplot_reactive())
+  ################ ################ ################ DATA VISUALISATION ################ ################ ################
+  ################ Tab 1 ################  
+  #1. Data distribution boxplot
+  output$input_boxplot <- renderPlotly({
+    req(data$stats)
+    data$distribution_plot <- distrPlotlyBox(data$stats$absolute_df,
+                                             no_rep = data$no_rep,
+                                             no_cond = data$no_cond)
+    return(data$distribution_plot$plot)
+  })
   
-})
-
-#Create plot in reactive expression.
-NA_barplot_reactive <- reactive({
+  #1.1 Download distribution boxplot
   
-  req(data$file_indicator == TRUE)
-  p <- NULL
-  if(!is.null(data))
-    p <- missingValuePlotly(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep = data$no_rep)
-  
-  return(p)
-  
-})
-
-#2.1 Download missing values barplot.
-
-#Create the download UI
-output$NA_barplot_download_cui <- renderUI({
-  
-  req(NA_barplot_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("NA_barplot_download","Download Figure")),
-         bsTooltip("NA_barplot_download", title = "Choose the width and height and download the above missing values barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save missing values barplot in PDF format.
-output$NA_barplot_download <- downloadHandler(
-  
-  filename = function() {
+  #Create the download UI
+  output$input_boxplot_download_cui <- renderUI({
     
-    paste("NABarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+    req(data$distribution_plot$plot)
     
-  },
-  content = function(file) {
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("input_boxplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("input_boxplot_download","Download Figure")),
+           bsTooltip("input_boxplot_download", title = "Choose the width and height and download the above distribution boxplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
-    shiny::withProgress(message = "Missing value barplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      temp_name <- tempfile(pattern = "naBarplot", fileext = ".html")
-      
-      p <- NA_barplot_reactive()
-      
-      p$width <- input$NA_barplot_width
-      p$height <- input$NA_barplot_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "NA_barplot_width", value = 1000)
-      updateNumericInput(session, "NA_barplot_height", value = 1000)
-      
-    })
-  }
+  })
   
-)
-
-#3. CV distribution histogram
-output$CV_distr <- renderPlotly({
-  req(data$stats)
-  data$CV_distr <- CVdistrPlotly(data$stats$CV_df, 
-                                 CV_cond = input$CV_reference,
-                                 col = input$CV_colour)
-  
-  return(data$CV_distr$plot)
-})
-
-#3.1 Download CV distribution histogram
-
-#Create the download UI
-output$CV_distr_download_cui <- renderUI({
-  
-  req(data$CV_distr$plot)
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("CV_distr_download","Download Figure")),
-         bsTooltip("CV_distr_download", title = "Choose the width and height and download the above Coefficient of variation distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save CV distribution histogram in PDF format.
-output$CV_distr_download <- downloadHandler(
-  
-  filename = function() {
+  #Save distribution boxplot in PDF format.
+  output$input_boxplot_download <- downloadHandler(
     
-    paste("CVDistributionHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+    filename = function() {
+      
+      paste("DistributionLinePlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Distribution boxplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "distPlot", fileext = ".html")
+        
+        p <- data$distribution_plot$plot
+        
+        p$width <- input$input_boxplot_width
+        p$height <- input$input_boxplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "input_boxplot_width", value = 1000)
+        updateNumericInput(session, "input_boxplot_height", value = 1000)
+        
+      })
+    }
     
-  },
-  content = function(file) {
+  )
+  
+  #2. Missing values barplot
+  output$NA_barplot <- renderPlotly({
     
-    shiny::withProgress(message = "CV histogram download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "CVdistPlot", fileext = ".html")
-      
-      p <- data$CV_distr$plot
-      
-      p$width <- input$CV_distr_width
-      p$height <- input$CV_distr_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "CV_distr_width", value = 1000)
-      updateNumericInput(session, "CV_distr_height", value = 1000)
-      
-    })
-  }
-  
-)
-
-#4. CV mean and median - turn to RED if mean CV > 15% in the sample
-output$CV_mean_median <- renderText({
-  req(data$CV_distr)
-  mean <- round(data$CV_distr$mean,3)
-  median <- round(data$CV_distr$median,3)
-  text <- paste0("Mean - ", mean , "[%]","Median - ", median ,"[%]")
-  return(ifelse(mean > 15, yes = paste0("<div style=\"color:red; text-align: center; font-size: 15pt;\">",text,"</div>"),
-                no = paste0("<div style=\"text-align: center; font-size: 15pt;\">",text,"</div>")))
-})
-
-#5. Correlation scatter plot
-output$scatter <- renderPlotly({
-  
-  req(scatter_reactive())
-  
-  return(scatter_reactive())
-  
-})
-
-#Create plot in reactive expression.
-scatter_reactive <- reactive({
-  
-  req(data$input_stats_merged)
-  
-  x <- log2(data$input_stats_merged[,(input$scatter_c1+1)])
-  y <- log2(data$input_stats_merged[,(input$scatter_c2+1)])
-  meth <- input$correlation_scatter
-  corr <- round(cor(x, y, method = meth, use = "complete.obs"),3)
-  p<- plotly::plot_ly(x = x, y = y, type = "scatter", marker = list(size = 3.5), mode = "markers") %>%
-    plotly::layout(title = paste(paste(toupper(substr(meth, 1, 1)), substr(meth, 2, nchar(meth)), sep=""),
-                                 "correlation between samples", input$scatter_c1, "and", input$scatter_c2, "-", corr, sep =" "),
-                   xaxis = list(title = paste("Sample", input$scatter_c1)),
-                   yaxis = list(title = paste("Sample", input$scatter_c2))) %>%
-    plotly::config(showLink = F, 
-                   displaylogo = F,
-                   modeBarButtonsToRemove = list('sendDataToCloud',
-                                                 'hoverCompareCartesian',
-                                                 'hoverClosestCartesian',
-                                                 'toggleSpikelines'))
-  return(p)
-  
-})
-
-#5.1 Download Correlation scatter plot
-
-#Create the download UI
-output$scatter_download_cui <- renderUI({
-  
-  req(scatter_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("scatter_download","Download Figure")),
-         bsTooltip("scatter_download", title = "Choose the width and height and download the above correlation scatter plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save correlation scatter plot in PDF format.
-output$scatter_download <- downloadHandler(
-  
-  filename = function() {
+    req(NA_barplot_reactive())
     
-    paste("CorScatterPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+    return(NA_barplot_reactive())
     
-  },
-  content = function(file) {
+  })
+  
+  #Create plot in reactive expression.
+  NA_barplot_reactive <- reactive({
     
-    shiny::withProgress(message = "Coreelations scatter plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
-      
-      p <- scatter_reactive()
-      
-      p$width <- input$scatter_width
-      p$height <- input$scatter_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "scatter_width", value = 1000)
-      updateNumericInput(session, "scatter_height", value = 1000)
-    })
-  }
-  
-)
-
-#6. qValue distribution histogram
-
-output$qV_distr <- renderPlotly({
-  
-  req(qV_distr_reactive())
-  return(qV_distr_reactive())
-  
-})
-
-#Create plot in reactive expression.
-qV_distr_reactive <- reactive({
-  
-  if(data$file_indicator == TRUE){  
+    req(data$file_indicator == TRUE)
+    p <- NULL
+    if(!is.null(data))
+      p <- missingValuePlotly(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep = data$no_rep)
     
-    p <- qValuePlot(data$stats, condition = input$qV_reference, col = input$qV_colour)
     return(p)
     
-  } else {
+  })
+  
+  #2.1 Download missing values barplot.
+  
+  #Create the download UI
+  output$NA_barplot_download_cui <- renderUI({
     
-    return(NULL)  
+    req(NA_barplot_reactive())
     
-  }
-  
-})
-
-#6.1 Download qValue distribution histogram
-
-#Create the download UI
-output$qV_distr_download_cui <- renderUI({
-  
-  req(qV_distr_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("qV_distr_download","Download Figure")),
-         bsTooltip("qV_distr_download", title = "Choose the width and height and download the above qValue distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save qValue distribution histogram in PDF format.
-output$qV_distr_download <- downloadHandler(
-  
-  filename = function() {
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("NA_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("NA_barplot_download","Download Figure")),
+           bsTooltip("NA_barplot_download", title = "Choose the width and height and download the above missing values barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
-    paste("qValueDistributionHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+  })
+  
+  #Save missing values barplot in PDF format.
+  output$NA_barplot_download <- downloadHandler(
     
-  },
-  content = function(file) {
+    filename = function() {
+      
+      paste("NABarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Missing value barplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "naBarplot", fileext = ".html")
+        
+        p <- NA_barplot_reactive()
+        
+        p$width <- input$NA_barplot_width
+        p$height <- input$NA_barplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "NA_barplot_width", value = 1000)
+        updateNumericInput(session, "NA_barplot_height", value = 1000)
+        
+      })
+    }
     
-    shiny::withProgress(message = "q-Value distribution plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
-      
-      p <- qV_distr_reactive()
-      
-      p$width <- input$qV_distr_width
-      p$height <- input$qV_distr_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "qV_distr_width", value = 1000)
-      updateNumericInput(session, "qV_distr_height", value = 1000)
-      
-    })
-  }
+  )
   
-)
-
-#7. Volcano plots
-output$volcano <- renderPlotly({
-  
-  req(volcano_reactive())
-  
-  return(volcano_reactive())
-  
-})
-
-#Create plot in reactive expression
-volcano_reactive <- reactive({
-  
-  req(input$volcano_cond>=2 & !is.null(data$stats))
-  
-  p <- volcanoPlot(data$stats, input$volcano_cond, input$volcano_th)
-  
-  return(p)
-  
-})
-
-#7.1 Download volcano plot
-
-#Create the download UI
-output$volcano_download_cui <- renderUI({
-  
-  req(volcano_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("volcano_download","Download Figure")),
-         bsTooltip("volcano_download", title = "Choose the width and height and download the above volcano plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save volcano plot in PDF format.
-output$volcano_download <- downloadHandler(
-  
-  filename = function() {
+  #3. CV distribution histogram
+  output$CV_distr <- renderPlotly({
+    req(data$stats)
+    data$CV_distr <- CVdistrPlotly(data$stats$CV_df, 
+                                   CV_cond = input$CV_reference,
+                                   col = input$CV_colour)
     
-    paste("VolcanoPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+    return(data$CV_distr$plot)
+  })
+  
+  #3.1 Download CV distribution histogram
+  
+  #Create the download UI
+  output$CV_distr_download_cui <- renderUI({
     
-  },
-  content = function(file) {
+    req(data$CV_distr$plot)
     
-    shiny::withProgress(message = "Volcano plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      temp_name <- tempfile(pattern = "volcano", fileext = ".html")
-      
-      p <- volcano_reactive()
-      
-      p$width <- input$volcano_width
-      p$height <- input$volcano_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "volcano_width", value = 1000)
-      updateNumericInput(session, "volcano_height", value = 1000)
-    })
-  }
-  
-)
-
-#8. PCA - take absolute values and in the function perform LOG2 transformation
-output$pca <- renderPlotly({
-  
-  req(pca_reactive())
-  
-  return(pca_reactive())
-  
-})
-
-#Create plot in reactive expression
-pca_reactive <- reactive({
-  
-  req(data$stats)
-  
-  p <- plotlyPCA(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep  = data$no_rep)
-  
-  return(p)
-  
-})
-
-#8.1 Download PCA plot
-
-#Create the download UI
-output$pca_download_cui <- renderUI({
-  
-  req(pca_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("pca_download","Download Figure")),
-         bsTooltip("pca_download", title = "Choose the width and height and download the above PCA plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save PCA plot in PDF format.
-output$pca_download <- downloadHandler(
-  
-  filename = function() {
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("CV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("CV_distr_download","Download Figure")),
+           bsTooltip("CV_distr_download", title = "Choose the width and height and download the above Coefficient of variation distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
-    paste("PCAPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
-    
-  },
-  content = function(file) {
-    
-    shiny::withProgress(message = "Volcano plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "pca", fileext = ".html")
-      
-      p <- pca_reactive()
-      
-      p$width <- input$pca_width
-      p$height <- input$pca_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "pca_width", value = 1000)
-      updateNumericInput(session, "pca_height", value = 1000)
-      
-    })
-  }
+  })
   
-)
-
-################ Tab 2 ################    
-#1. Main table to display protein complexes. (Body) (Done)
-shiny::observeEvent(input$run_analysis, {
+  #Save CV distribution histogram in PDF format.
+  output$CV_distr_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("CVDistributionHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "CV histogram download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "CVdistPlot", fileext = ".html")
+        
+        p <- data$CV_distr$plot
+        
+        p$width <- input$CV_distr_width
+        p$height <- input$CV_distr_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "CV_distr_width", value = 1000)
+        updateNumericInput(session, "CV_distr_height", value = 1000)
+        
+      })
+    }
+    
+  )
   
-  output$user_complexes <- DT::renderDataTable({
+  #4. CV mean and median - turn to RED if mean CV > 15% in the sample
+  output$CV_mean_median <- renderText({
+    req(data$CV_distr)
+    mean <- round(data$CV_distr$mean,3)
+    median <- round(data$CV_distr$median,3)
+    text <- paste0("Mean - ", mean , "[%]","Median - ", median ,"[%]")
+    return(ifelse(mean > 15, yes = paste0("<div style=\"color:red; text-align: center; font-size: 15pt;\">",text,"</div>"),
+                  no = paste0("<div style=\"text-align: center; font-size: 15pt;\">",text,"</div>")))
+  })
+  
+  #5. Correlation scatter plot
+  output$scatter <- renderPlotly({
     
-    shiny::req(data$user_input, data$stats)
+    req(scatter_reactive())
     
-    shiny::withProgress(message = "Analysing protein complexes in your data", min = 0, max = 4, value = 0, {
+    return(scatter_reactive())
+    
+  })
+  
+  #Create plot in reactive expression.
+  scatter_reactive <- reactive({
+    
+    req(data$input_stats_merged)
+    
+    x <- log2(data$input_stats_merged[,(input$scatter_c1+1)])
+    y <- log2(data$input_stats_merged[,(input$scatter_c2+1)])
+    meth <- input$correlation_scatter
+    corr <- round(cor(x, y, method = meth, use = "complete.obs"),3)
+    p<- plotly::plot_ly(x = x, y = y, type = "scatter", marker = list(size = 3.5), mode = "markers") %>%
+      plotly::layout(title = paste(paste(toupper(substr(meth, 1, 1)), substr(meth, 2, nchar(meth)), sep=""),
+                                   "correlation between samples", input$scatter_c1, "and", input$scatter_c2, "-", corr, sep =" "),
+                     xaxis = list(title = paste("Sample", input$scatter_c1)),
+                     yaxis = list(title = paste("Sample", input$scatter_c2))) %>%
+      plotly::config(showLink = F, 
+                     displaylogo = F,
+                     modeBarButtonsToRemove = list('sendDataToCloud',
+                                                   'hoverCompareCartesian',
+                                                   'hoverClosestCartesian',
+                                                   'toggleSpikelines'))
+    return(p)
+    
+  })
+  
+  #5.1 Download Correlation scatter plot
+  
+  #Create the download UI
+  output$scatter_download_cui <- renderUI({
+    
+    req(scatter_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("scatter_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("scatter_download","Download Figure")),
+           bsTooltip("scatter_download", title = "Choose the width and height and download the above correlation scatter plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save correlation scatter plot in PDF format.
+  output$scatter_download <- downloadHandler(
+    
+    filename = function() {
       
-      if(input$database == "CORUM"){
-        
-        database <- corum_prepared
-        
-      } else if(input$database == "EBI Complex Portal"){
-        
-        database <- complex_portal_prepared
-        
-      } else if(input$database == "User defined database"){
-        
-        shiny::req(input$user_database$datapath)
-        database <- prepareUserDB(input$user_database$datapath)
-        
-      }
+      paste("CorScatterPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
       
-      shiny::incProgress(1, detail = "DB established.")
-      index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism == input$species,]$Subunits)))
-      data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
-      shiny::incProgress(1, detail = "DB search")
+    },
+    content = function(file) {
       
-      # Enable buttons for sending human proteins to CoExpresso
-      if(input$species == "Homo sapiens" | input$species == "Human") {
+      shiny::withProgress(message = "Coreelations scatter plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
         
-        shinyjs::enable("CoExpresso")
-        shinyjs::enable("CoExpressoFull")
+        p <- scatter_reactive()
         
-      } else {
+        p$width <- input$scatter_width
+        p$height <- input$scatter_height
         
-        shinyjs::disable("CoExpresso")
-        shinyjs::disable("CoExpressoFull")
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
         
-      }
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "scatter_width", value = 1000)
+        updateNumericInput(session, "scatter_height", value = 1000)
+      })
+    }
+    
+  )
+  
+  #6. qValue distribution histogram
+  
+  output$qV_distr <- renderPlotly({
+    
+    req(qV_distr_reactive())
+    return(qV_distr_reactive())
+    
+  })
+  
+  #Create plot in reactive expression.
+  qV_distr_reactive <- reactive({
+    
+    if(data$file_indicator == TRUE){  
       
-      data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
+      p <- qValuePlot(data$stats, condition = input$qV_reference, col = input$qV_colour)
+      return(p)
       
-      if (is.null(data$f_database)) {
-        
-        return(DT::datatable(data.frame(Warning = paste0("No complexes found for ", input$species, "."), stringsAsFactors = F),
-                             caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;", "Table 2: ", htmltools::em("Protein complexes found in the input dataset (using 0 proteins)"))) )
-        shiny::incProgress(2, "No complexes found.")
-        
-      } else {
-        
-        data$no_complexes <- length(data$f_database[,1])  
-        data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
-        shiny::incProgress(1, "Complexes expression calculation.")
-        data$f_db_farms <- cbind(data$f_database, complexDBfarms(f_database = data$f_database, stats = data$f_stats, no_cond = data$no_cond, no_rep = data$no_rep))
-        shiny::incProgress(1, "Data aggregation.")
-        #Change a vector to string for better display (subunits)
-        data$for_display <- concatinateSubunits(filtered_database = data$f_db_farms)
-        
-        #Hover labels for the table
-        container <- generateColLabels(data$no_cond, database = input$database)
-        shiny::req(data$for_display)
-        
-        
-        DT::datatable(data$for_display, 
-                      selection = list(mode = "single",selected = 1), 
-                      height = 400,
-                      filter = "top",
-                      container = container,
-                      caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;", "Table 2: ", htmltools::em(paste0("Protein complexes found in the input dataset", " (using ", data$no_proteins_used, " proteins)"))),
-                      options = list(scrollX = TRUE,
-                                     scrollY = TRUE,
-                                     columnDefs = list(list(targets = c(6,7),
-                                                            render = DT::JS("function(data, type, row, meta) {", "return type === 'display' && data.length > 15 ?",
-                                                                            "'<span title=\"' + data + '\">' + data.substr(0, 15) + '...</span>' : data;", "}")),
-                                                       list(targets = c(1,3,4,5), width = "35px"),
-                                                       list(targets = c(2), width = "200px", render = DT::JS("function(data, type, row, meta) {", "return type === 'display' && data.length > 30 ?",
-                                                                                                             "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;", "}")))
-                      )
-        )
-      }
+    } else {
       
+      return(NULL)  
+      
+    }
+    
+  })
+  
+  #6.1 Download qValue distribution histogram
+  
+  #Create the download UI
+  output$qV_distr_download_cui <- renderUI({
+    
+    req(qV_distr_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("qV_distr_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("qV_distr_download","Download Figure")),
+           bsTooltip("qV_distr_download", title = "Choose the width and height and download the above qValue distribution histogram in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save qValue distribution histogram in PDF format.
+  output$qV_distr_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("qValueDistributionHistogram_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "q-Value distribution plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "qVdistPlot", fileext = ".html")
+        
+        p <- qV_distr_reactive()
+        
+        p$width <- input$qV_distr_width
+        p$height <- input$qV_distr_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "qV_distr_width", value = 1000)
+        updateNumericInput(session, "qV_distr_height", value = 1000)
+        
+      })
+    }
+    
+  )
+  
+  #7. Volcano plots
+  output$volcano <- renderPlotly({
+    
+    req(volcano_reactive())
+    
+    return(volcano_reactive())
+    
+  })
+  
+  #Create plot in reactive expression
+  volcano_reactive <- reactive({
+    
+    req(input$volcano_cond>=2 & !is.null(data$stats))
+    
+    p <- volcanoPlot(data$stats, input$volcano_cond, input$volcano_th)
+    
+    return(p)
+    
+  })
+  
+  #7.1 Download volcano plot
+  
+  #Create the download UI
+  output$volcano_download_cui <- renderUI({
+    
+    req(volcano_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("volcano_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("volcano_download","Download Figure")),
+           bsTooltip("volcano_download", title = "Choose the width and height and download the above volcano plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save volcano plot in PDF format.
+  output$volcano_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("VolcanoPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Volcano plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        temp_name <- tempfile(pattern = "volcano", fileext = ".html")
+        
+        p <- volcano_reactive()
+        
+        p$width <- input$volcano_width
+        p$height <- input$volcano_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "volcano_width", value = 1000)
+        updateNumericInput(session, "volcano_height", value = 1000)
+      })
+    }
+    
+  )
+  
+  #8. PCA - take absolute values and in the function perform LOG2 transformation
+  output$pca <- renderPlotly({
+    
+    req(pca_reactive())
+    
+    return(pca_reactive())
+    
+  })
+  
+  #Create plot in reactive expression
+  pca_reactive <- reactive({
+    
+    req(data$stats)
+    
+    p <- plotlyPCA(data = data$stats$absolute_df, no_cond = data$no_cond, no_rep  = data$no_rep)
+    
+    return(p)
+    
+  })
+  
+  #8.1 Download PCA plot
+  
+  #Create the download UI
+  output$pca_download_cui <- renderUI({
+    
+    req(pca_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("pca_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("pca_download","Download Figure")),
+           bsTooltip("pca_download", title = "Choose the width and height and download the above PCA plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save PCA plot in PDF format.
+  output$pca_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("PCAPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Volcano plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "pca", fileext = ".html")
+        
+        p <- pca_reactive()
+        
+        p$width <- input$pca_width
+        p$height <- input$pca_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "pca_width", value = 1000)
+        updateNumericInput(session, "pca_height", value = 1000)
+        
+      })
+    }
+    
+  )
+  
+  ################ Tab 2 ################    
+  #1. Main table to display protein complexes. (Body) (Done)
+  shiny::observeEvent(input$run_analysis, {
+    
+    output$user_complexes <- DT::renderDataTable({
+      
+      shiny::req(data$user_input, data$stats)
+      
+      shiny::withProgress(message = "Analysing protein complexes in your data", min = 0, max = 4, value = 0, {
+        
+        if(input$database == "CORUM"){
+          
+          database <- corum_prepared
+          
+        } else if(input$database == "EBI Complex Portal"){
+          
+          database <- complex_portal_prepared
+          
+        } else if(input$database == "User defined database"){
+          
+          shiny::req(input$user_database$datapath)
+          database <- prepareUserDB(input$user_database$datapath)
+          
+        }
+        
+        shiny::incProgress(1, detail = "DB established.")
+        index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism == input$species,]$Subunits)))
+        data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
+        shiny::incProgress(1, detail = "DB search")
+        
+        # Enable buttons for sending human proteins to CoExpresso
+        if(input$species == "Homo sapiens" | input$species == "Human") {
+          
+          shinyjs::enable("CoExpresso")
+          shinyjs::enable("CoExpressoFull")
+          
+        } else {
+          
+          shinyjs::disable("CoExpresso")
+          shinyjs::disable("CoExpressoFull")
+          
+        }
+        
+        data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
+        
+        if (is.null(data$f_database)) {
+          
+          return(DT::datatable(data.frame(Warning = paste0("No complexes found for ", input$species, "."), stringsAsFactors = F),
+                               caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;", "Table 2: ", htmltools::em("Protein complexes found in the input dataset (using 0 proteins)"))) )
+          shiny::incProgress(2, "No complexes found.")
+          
+        } else {
+          
+          data$no_complexes <- length(data$f_database[,1])  
+          data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
+          shiny::incProgress(1, "Complexes expression calculation.")
+          data$f_db_farms <- cbind(data$f_database, complexDBfarms(f_database = data$f_database, stats = data$f_stats, no_cond = data$no_cond, no_rep = data$no_rep))
+          shiny::incProgress(1, "Data aggregation.")
+          #Change a vector to string for better display (subunits)
+          data$for_display <- concatinateSubunits(filtered_database = data$f_db_farms)
+          
+          #Hover labels for the table
+          container <- generateColLabels(data$no_cond, database = input$database)
+          shiny::req(data$for_display)
+          
+          
+          DT::datatable(data$for_display, 
+                        selection = list(mode = "single",selected = 1), 
+                        height = 400,
+                        filter = "top",
+                        container = container,
+                        caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;", "Table 2: ", htmltools::em(paste0("Protein complexes found in the input dataset", " (using ", data$no_proteins_used, " proteins)"))),
+                        options = list(scrollX = TRUE,
+                                       scrollY = TRUE,
+                                       columnDefs = list(list(targets = c(6,7),
+                                                              render = DT::JS("function(data, type, row, meta) {", "return type === 'display' && data.length > 15 ?",
+                                                                              "'<span title=\"' + data + '\">' + data.substr(0, 15) + '...</span>' : data;", "}")),
+                                                         list(targets = c(1,3,4,5), width = "35px"),
+                                                         list(targets = c(2), width = "200px", render = DT::JS("function(data, type, row, meta) {", "return type === 'display' && data.length > 30 ?",
+                                                                                                               "'<span title=\"' + data + '\">' + data.substr(0, 30) + '...</span>' : data;", "}")))
+                        )
+          )
+        }
+        
+      })
     })
   })
-})
-
-
-#2. Star graph complex
-output$complex_graph <- networkD3::renderForceNetwork({
   
-  req(data$f_stats$FC_df,
-      data$f_database,
-      input$user_complexes_rows_selected,
-      condition = input$star_condition)
-  data$significance_level <- ifelse(input$q_values_th, yes = input$significance_level, no = 1)
-  data$star_graph <- plotD3complexGraph(stats =  data$f_stats,
-                                        f_db = data$f_database, 
-                                        row = input$user_complexes_rows_selected, 
-                                        condition = input$star_condition, 
-                                        q_threshold = data$significance_level,
-                                        fc_threhold = input$FC_th)
   
-  data$star_graph$star_graph
-  
-})
-
-#2.1 Download complex star graph
-
-#Create the download UI
-output$complex_graph_download_cui <- renderUI({
-  
-  req(data$star_graph$star_graph)
-  
-  tags$p(div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download Figure")),
-         bsTooltip("complex_graph_download", title = "Click the download button to download the above complex graph in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save complex graph in PDF format.
-output$complex_graph_download <- downloadHandler(
-  
-  filename = function() {
+  #2. Star graph complex
+  output$complex_graph <- networkD3::renderForceNetwork({
     
-    paste("ComplexGraph_", Sys.time(), ".pdf", collapse = "", sep = "")
+    req(data$f_stats$FC_df,
+        data$f_database,
+        input$user_complexes_rows_selected,
+        condition = input$star_condition)
+    data$significance_level <- ifelse(input$q_values_th, yes = input$significance_level, no = 1)
+    data$star_graph <- plotD3complexGraph(stats =  data$f_stats,
+                                          f_db = data$f_database, 
+                                          row = input$user_complexes_rows_selected, 
+                                          condition = input$star_condition, 
+                                          q_threshold = data$significance_level,
+                                          fc_threhold = input$FC_th)
     
-  },
-  content = function(file) {
+    data$star_graph$star_graph
     
-    shiny::withProgress(message = "Star-graph download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "star", fileext = ".html")
-      
-      p <- data$star_graph$star_graph
-      
-      p$x$options$opacityNoHover <- T
-      p$x$options$opacity <- 1
-      p$x$options$opacityNoHover <- 1
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-    })
-  }
+  })
   
-)
-
-
-#3. Multiline plot
-output$multiline_plot <- renderPlotly({
+  #2.1 Download complex star graph
   
-  req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
-  shiny::validate(need(!is.null(data$f_stats), "No data from statistical tests"))
-  data$multiline_plot <- multilinePlot(f_db = data$f_database, 
-                                       stats = data$f_stats,
-                                       row = input$user_complexes_rows_selected,
-                                       no_cond = data$no_cond,
-                                       scale = input$multiline_scale)
-  
-  req(data$multiline_plot$plot)
-  return(data$multiline_plot$plot)
-  
-})
-
-
-#3.1 Download multiline plot
-
-#Create the download UI
-output$multiline_plot_download_cui <- renderUI({
-  
-  req(data$multiline_plot$plot)
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("multiline_plot_download","Download Figure")),
-         bsTooltip("multiline_plot_download", title = "Choose the width and height and download the above expression profile plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save the multiline plot in PDF format.
-output$multiline_plot_download <- downloadHandler(
-  
-  filename = function() {
+  #Create the download UI
+  output$complex_graph_download_cui <- renderUI({
     
-    paste("MultiLinePlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+    req(data$star_graph$star_graph)
     
-  },
-  content = function(file) {
+    tags$p(div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("complex_graph_download","Download Figure")),
+           bsTooltip("complex_graph_download", title = "Click the download button to download the above complex graph in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
-    shiny::withProgress(message = "Expression line-plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "multiPlot", fileext = ".html")
-      
-      p <- data$multiline_plot$plot
-      
-      p$width <- input$multiline_plot_width
-      p$height <- input$multiline_plot_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "multiline_plot_width", value = 1000)
-      updateNumericInput(session, "multiline_plot_height", value = 1000)
-      
-    })
-  }
+  })
   
-)
-
-#4. Single subunits expression barplot
-output$expression_barplot <- plotly::renderPlotly({
-  
-  shiny::validate(need(input$node_clicked %in% data$f_stats$absolute_df[,1], "Please click on a protein in the Protein complex visualization panel"))
-  req(expression_barplot_reactive())
-  return(expression_barplot_reactive())
-  
-})
-
-#Reactive single subunits expression barplot
-expression_barplot_reactive <- reactive({
-  
-  req(input$node_clicked, data$f_stats)
-  
-  if(!(as.character(input$node_clicked) %in% as.character(data$f_stats$absolute_df[,1]))){
-    return(NULL)
-  }
-  if(!is.null(data$f_stats)) {
-    my_plot <- expressionBarplot(input$node_clicked, f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
-  }
-})
-
-#4.1 Download single subunits expression barplot
-
-#Create the download UI
-output$expression_barplot_download_cui <- renderUI({
-  
-  req(expression_barplot_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("expression_barplot_download","Download Figure")),
-         bsTooltip("expression_barplot_download", title = "Choose the width and height and download the above expression barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save the single subunits expression barplot in PDF format.
-output$expression_barplot_download <- downloadHandler(
-  
-  filename = function() {
+  #Save complex graph in PDF format.
+  output$complex_graph_download <- downloadHandler(
     
-    paste("ExpressionBarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+    filename = function() {
+      
+      paste("ComplexGraph_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Star-graph download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "star", fileext = ".html")
+        
+        p <- data$star_graph$star_graph
+        
+        p$x$options$opacityNoHover <- T
+        p$x$options$opacity <- 1
+        p$x$options$opacityNoHover <- 1
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+      })
+    }
     
-  },
-  content = function(file) {
+  )
+  
+  
+  #3. Multiline plot
+  output$multiline_plot <- renderPlotly({
     
-    shiny::withProgress(message = "Protein expression barplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
-      
-      p <- expression_barplot_reactive()
-      
-      p$width <- input$expression_barplot_width
-      p$height <- input$expression_barplot_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "expression_barplot_width", value = 1000)
-      updateNumericInput(session, "expression_barplot_height", value = 1000)
-      
-    })
-  }
-  
-)
-
-#5. Table underneath the barplot
-output$fc_table <- renderDataTable({
-  req(input$node_clicked, 
-      data$f_stats)
-  row <- match(input$node_clicked, data$f_stats$absolute_df[,1])
-  df <- t(data.frame(data$f_stats$FC_df[row,]))
-  rownames(df) <- input$node_clicked
-  DT::datatable(df, options = list(dom = 't'))
-})
-
-#6. Table underneath the barplot
-output$qValue_table <- renderDataTable({
-  req(input$node_clicked, data$no_cond, data$no_rep)
-  row <- match(input$node_clicked, data$f_stats$absolute_df[,1])
-  df <- t(data.frame(data$f_stats$qValue_df[row,]))
-  rownames(df) <- input$node_clicked
-  DT::datatable(df, options = list(dom = 't'))
-})
-
-#7. Co-expression (linearity)
-output$Complex_correlation <- renderPlotly({
-  
-  req(Complex_correlation_reactive())
-  return(Complex_correlation_reactive())
-  
-})
-
-#Reactive co-expression plot
-Complex_correlation_reactive <- reactive({
-  
-  req(data$f_database$NQS[input$user_complexes_rows_selected]>2)
-  req(input$Corr_C1, input$Corr_C2)
-  plotComplexCorrelation(database = data$f_database,
-                         row = input$user_complexes_rows_selected,
-                         stats = data$f_stats,
-                         cond_1 = input$Corr_C1,
-                         cond_2 = input$Corr_C2)
-  
-})
-
-#7.1 Download complex correlation graph
-
-#Create the download UI
-output$Complex_correlation_download_cui <- renderUI({
-  
-  req(Complex_correlation_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("Complex_correlation_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("Complex_correlation_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("Complex_correlation_download","Download Figure")),
-         bsTooltip("Complex_correlation_download", title = "Choose the width and height and download the above complex correlation plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save the single subunits expression barplot in PDF format.
-output$Complex_correlation_download <- downloadHandler(
-  
-  filename = function() {
+    req(data$f_database$NQS[input$user_complexes_rows_selected]>1)
+    shiny::validate(need(!is.null(data$f_stats), "No data from statistical tests"))
+    data$multiline_plot <- multilinePlot(f_db = data$f_database, 
+                                         stats = data$f_stats,
+                                         row = input$user_complexes_rows_selected,
+                                         no_cond = data$no_cond,
+                                         scale = input$multiline_scale)
     
-    paste("ComplexCorrelationPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
+    req(data$multiline_plot$plot)
+    return(data$multiline_plot$plot)
     
-  },
-  content = function(file) {
+  })
+  
+  
+  #3.1 Download multiline plot
+  
+  #Create the download UI
+  output$multiline_plot_download_cui <- renderUI({
     
-    shiny::withProgress(message = "Complex correlation plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+    req(data$multiline_plot$plot)
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("multiline_plot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("multiline_plot_download","Download Figure")),
+           bsTooltip("multiline_plot_download", title = "Choose the width and height and download the above expression profile plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the multiline plot in PDF format.
+  output$multiline_plot_download <- downloadHandler(
+    
+    filename = function() {
       
-      temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+      paste("MultiLinePlot_", Sys.time(), ".pdf", collapse = "", sep = "")
       
-      p <- Complex_correlation_reactive()
+    },
+    content = function(file) {
       
-      p$width <- input$Complex_correlation_width
-      p$height <- input$Complex_correlation_height
+      shiny::withProgress(message = "Expression line-plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "multiPlot", fileext = ".html")
+        
+        p <- data$multiline_plot$plot
+        
+        p$width <- input$multiline_plot_width
+        p$height <- input$multiline_plot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "multiline_plot_width", value = 1000)
+        updateNumericInput(session, "multiline_plot_height", value = 1000)
+        
+      })
+    }
+    
+  )
+  
+  #4. Single subunits expression barplot
+  output$expression_barplot <- plotly::renderPlotly({
+    
+    shiny::validate(need(input$node_clicked %in% data$f_stats$absolute_df[,1], "Please click on a protein in the Protein complex visualization panel"))
+    req(expression_barplot_reactive())
+    return(expression_barplot_reactive())
+    
+  })
+  
+  #Reactive single subunits expression barplot
+  expression_barplot_reactive <- reactive({
+    
+    req(input$node_clicked, data$f_stats)
+    
+    if(!(as.character(input$node_clicked) %in% as.character(data$f_stats$absolute_df[,1]))){
+      return(NULL)
+    }
+    if(!is.null(data$f_stats)) {
+      my_plot <- expressionBarplot(input$node_clicked, f_data = data$f_stats$absolute_df, stat_list = data$f_stats)
+    }
+  })
+  
+  #4.1 Download single subunits expression barplot
+  
+  #Create the download UI
+  output$expression_barplot_download_cui <- renderUI({
+    
+    req(expression_barplot_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("expression_barplot_download","Download Figure")),
+           bsTooltip("expression_barplot_download", title = "Choose the width and height and download the above expression barplot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the single subunits expression barplot in PDF format.
+  output$expression_barplot_download <- downloadHandler(
+    
+    filename = function() {
       
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
+      paste("ExpressionBarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
       
-      webshot2::webshot(url = temp_name, file = file)
+    },
+    content = function(file) {
       
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+      shiny::withProgress(message = "Protein expression barplot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+        
+        p <- expression_barplot_reactive()
+        
+        p$width <- input$expression_barplot_width
+        p$height <- input$expression_barplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "expression_barplot_width", value = 1000)
+        updateNumericInput(session, "expression_barplot_height", value = 1000)
+        
+      })
+    }
+    
+  )
+  
+  #5. Table underneath the barplot
+  output$fc_table <- renderDataTable({
+    req(input$node_clicked, 
+        data$f_stats)
+    row <- match(input$node_clicked, data$f_stats$absolute_df[,1])
+    df <- t(data.frame(data$f_stats$FC_df[row,]))
+    rownames(df) <- input$node_clicked
+    DT::datatable(df, options = list(dom = 't'))
+  })
+  
+  #6. Table underneath the barplot
+  output$qValue_table <- renderDataTable({
+    req(input$node_clicked, data$no_cond, data$no_rep)
+    row <- match(input$node_clicked, data$f_stats$absolute_df[,1])
+    df <- t(data.frame(data$f_stats$qValue_df[row,]))
+    rownames(df) <- input$node_clicked
+    DT::datatable(df, options = list(dom = 't'))
+  })
+  
+  #7. Co-expression (linearity)
+  output$Complex_correlation <- renderPlotly({
+    
+    req(Complex_correlation_reactive())
+    return(Complex_correlation_reactive())
+    
+  })
+  
+  #Reactive co-expression plot
+  Complex_correlation_reactive <- reactive({
+    
+    req(data$f_database$NQS[input$user_complexes_rows_selected]>2)
+    req(input$Corr_C1, input$Corr_C2)
+    plotComplexCorrelation(database = data$f_database,
+                           row = input$user_complexes_rows_selected,
+                           stats = data$f_stats,
+                           cond_1 = input$Corr_C1,
+                           cond_2 = input$Corr_C2)
+    
+  })
+  
+  #7.1 Download complex correlation graph
+  
+  #Create the download UI
+  output$Complex_correlation_download_cui <- renderUI({
+    
+    req(Complex_correlation_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("Complex_correlation_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("Complex_correlation_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("Complex_correlation_download","Download Figure")),
+           bsTooltip("Complex_correlation_download", title = "Choose the width and height and download the above complex correlation plot in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the single subunits expression barplot in PDF format.
+  output$Complex_correlation_download <- downloadHandler(
+    
+    filename = function() {
       
-      updateNumericInput(session, "Complex_correlation_width", value = 1000)
-      updateNumericInput(session, "Complex_correlation_height", value = 1000)
+      paste("ComplexCorrelationPlot_", Sys.time(), ".pdf", collapse = "", sep = "")
       
-    })
-  }
-  
-)
-
-
-#8. Complex information table
-output$complex_information <- renderDataTable({
-  req(input$database, 
-      input$user_complexes_rows_selected)
-  if(input$database == "CORUM"){ 
-    i <- input$user_complexes_rows_selected
-    ComplexID <- as.character(data$f_database$ComplexID[i])
-    row <- match(ComplexID, 
-                 corum_prepared$ComplexID)
-    complex_df <- corum_prepared[row,]
-    complex_df <- complex_df %>% 
-      dplyr::select(Complex_name = Complex_Name, 
-                    ## TODO: add more info from original CORUM download
-                    Subunits = Subunits,
-                    GO_terms = Gene_ontology,
-                    Publication_PubMedID = PubMed.ID)
-    # Subunits = subunits.UniProt.IDs., 
-    # Subunits_gene = subunits.Gene.name., 
-    # Subunits_name = subunits.Protein.name.,
-    # FunCat_Description = FunCat.description,
-    # Comment = Complex.comment,  
-    # Disease  = Disease.comment)
-    rownames(complex_df) <- "Additional complex information"
-    complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
-    # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
-    # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Complex correlation plot download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "expressionBarplot", fileext = ".html")
+        
+        p <- Complex_correlation_reactive()
+        
+        p$width <- input$Complex_correlation_width
+        p$height <- input$Complex_correlation_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "Complex_correlation_width", value = 1000)
+        updateNumericInput(session, "Complex_correlation_height", value = 1000)
+        
+      })
+    }
     
-  }
-  else if(input$database == "EBI Complex Portal") {
-    i <- input$user_complexes_rows_selected
-    ComplexID <- as.character(data$f_database$ComplexID[i])
-    row <- match(ComplexID, 
-                 complex_portal_prepared[,1])
-    complex_df <- complex_portal_prepared[row,]
-    complex_df <- complex_df %>% 
-      dplyr::select(Complex_name = Complex_Name, 
-                    Subunits = Subunits, 
-                    # Confidence = Confidence, 
-                    GO.annotations = GO_terms) 
-    # Disease  = Disease)
-    rownames(complex_df) <- "Additional complex information"
-    complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
-      gsub(",","][",x)))), "]",collapse="")
-    # complex_df$Protein_subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
+  )
+  
+  
+  #8. Complex information table
+  output$complex_information <- renderDataTable({
+    req(input$database, 
+        input$user_complexes_rows_selected)
+    if(input$database == "CORUM"){ 
+      i <- input$user_complexes_rows_selected
+      ComplexID <- as.character(data$f_database$ComplexID[i])
+      row <- match(ComplexID, 
+                   corum_prepared$ComplexID)
+      complex_df <- corum_prepared[row,]
+      complex_df <- complex_df %>% 
+        dplyr::select(Complex_name = Complex_Name, 
+                      ## TODO: add more info from original CORUM download
+                      Subunits = Subunits,
+                      GO_terms = Gene_ontology,
+                      Publication_PubMedID = PubMed.ID)
+      # Subunits = subunits.UniProt.IDs., 
+      # Subunits_gene = subunits.Gene.name., 
+      # Subunits_name = subunits.Protein.name.,
+      # FunCat_Description = FunCat.description,
+      # Comment = Complex.comment,  
+      # Disease  = Disease.comment)
+      rownames(complex_df) <- "Additional complex information"
+      complex_df$Subunits <- paste0("[",sapply(complex_df$Subunits, function(x) gsub(",","][",x)), "]",collapse="")
+      # complex_df$Subunits_gene <- paste0("[",sapply(complex_df$Subunits_gene, function(x) gsub(";","][",x)), "]")
+      # complex_df$Subunits_name <- paste0("[",sapply(complex_df$Subunits_name, function(x) gsub(";","][",x)), "]")
+      
+    }
+    else if(input$database == "EBI Complex Portal") {
+      i <- input$user_complexes_rows_selected
+      ComplexID <- as.character(data$f_database$ComplexID[i])
+      row <- match(ComplexID, 
+                   complex_portal_prepared[,1])
+      complex_df <- complex_portal_prepared[row,]
+      complex_df <- complex_df %>% 
+        dplyr::select(Complex_name = Complex_Name, 
+                      Subunits = Subunits, 
+                      # Confidence = Confidence, 
+                      GO.annotations = GO_terms) 
+      # Disease  = Disease)
+      rownames(complex_df) <- "Additional complex information"
+      complex_df$Subunits <- paste0("[",paste(unlist(sapply(complex_df$Subunits, function(x) 
+        gsub(",","][",x)))), "]",collapse="")
+      # complex_df$Protein_subunits <- sapply(complex_df$Subunits_and_stoichiometry, function(x) gsub("|","\r\n",x))
+      
+    } else if(input$database == "User defined database"){
+      
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
+      
+    }
+    else if(input$database == "User defined database"){
+      complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
+    }
+    DT::datatable(t(complex_df),
+                  options = list(scrollX = FALSE,
+                                 paging = FALSE,
+                                 scrollY = '50vh',
+                                 selection = list(mode = "none"),
+                                 deferRender = FALSE,
+                                 scrollY = TRUE))
+  })
+  
+  #9. Complex names as headers for expression and correlation heatmaps. (Body) (Done)
+  output$complex_name <- shiny::renderText({
     
-  } else if(input$database == "User defined database"){
+    paste0("Complex: ", as.character(data$f_database[input$user_complexes_rows_selected, "Complex_Name"]))
     
-    complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
+  })
+  
+  output$complex_name1 <- shiny::renderText({
     
-  }
-  else if(input$database == "User defined database"){
-    complex_df <- data.frame(Information = "This tab does not contain additional information for user defined databases")
-  }
-  DT::datatable(t(complex_df),
-                options = list(scrollX = FALSE,
-                               paging = FALSE,
-                               scrollY = '50vh',
-                               selection = list(mode = "none"),
-                               deferRender = FALSE,
-                               scrollY = TRUE))
-})
-
-#9. Complex names as headers for expression and correlation heatmaps. (Body) (Done)
-output$complex_name <- shiny::renderText({
-  
-  paste0("Complex: ", as.character(data$f_database[input$user_complexes_rows_selected, "Complex_Name"]))
-  
-})
-
-output$complex_name1 <- shiny::renderText({
-  
-  paste0("Complex: ", as.character(data$f_database[input$user_complexes_rows_selected, "Complex_Name"]))
-  
-})
-
-#10. Expression heatmap (Body) (Done)
-output$expression_heatmap <- plotly::renderPlotly({
-  
-  shiny::req(expression_heatmap_reactive())
-  return(expression_heatmap_reactive())
-  
-})
-
-#Reactive protein complex expression heatmap. (Body) (Done)
-expression_heatmap_reactive <- shiny::reactive({
-  
-  shiny::req(data$f_database$NQS[input$user_complexes_rows_selected] >= 2)
-  shiny::req(data$no_cond >= 2)
-  
-  
-  if(input$d_measure == "minkowski"){
+    paste0("Complex: ", as.character(data$f_database[input$user_complexes_rows_selected, "Complex_Name"]))
     
-    shiny::req(input$minkowski_p)
+  })
+  
+  #10. Expression heatmap (Body) (Done)
+  output$expression_heatmap <- plotly::renderPlotly({
     
-    p <- plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
-                            index_vector = data$multiline_plot$index_vector,
-                            stats   = data$f_stats,
-                            no_cond = data$no_cond,
-                            distance_measure = input$d_measure,
-                            agg_method = input$agg_method,
-                            p = as.numeric(input$minkowski_p))
+    shiny::req(expression_heatmap_reactive())
+    return(expression_heatmap_reactive())
     
-  } else {
+  })
+  
+  #Reactive protein complex expression heatmap. (Body) (Done)
+  expression_heatmap_reactive <- shiny::reactive({
     
-    p <- plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
-                            index_vector = data$multiline_plot$index_vector,
-                            stats   = data$f_stats,
-                            no_cond = data$no_cond,
-                            distance_measure = input$d_measure,
-                            agg_method = input$agg_method)
+    shiny::req(data$f_database$NQS[input$user_complexes_rows_selected] >= 2)
+    shiny::req(data$no_cond >= 2)
     
     
-  }
-  
-  return(p$heatmap)
-  
-})
-
-#10.1 Download expression heat map in PDF
-#Create the download UI
-output$expression_heatmap_download_cui <- renderUI({
-  
-  req(expression_heatmap_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_heatmap_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_heatmap_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("expression_heatmap_download","Download Figure")),
-         bsTooltip("expression_heatmap_download", title = "Choose the width and height and download the above expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save the expression heatmap in PDF format.
-output$expression_heatmap_download <- downloadHandler(
-  
-  filename = function() {
+    if(input$d_measure == "minkowski"){
+      
+      shiny::req(input$minkowski_p)
+      
+      p <- plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
+                              index_vector = data$multiline_plot$index_vector,
+                              stats   = data$f_stats,
+                              no_cond = data$no_cond,
+                              distance_measure = input$d_measure,
+                              agg_method = input$agg_method,
+                              p = as.numeric(input$minkowski_p))
+      
+    } else {
+      
+      p <- plotComplexHeatmap(names_vector = data$multiline_plot$subunits_names,
+                              index_vector = data$multiline_plot$index_vector,
+                              stats   = data$f_stats,
+                              no_cond = data$no_cond,
+                              distance_measure = input$d_measure,
+                              agg_method = input$agg_method)
+      
+      
+    }
     
-    paste("ExpressionHeatmap_", Sys.time(), ".pdf", collapse = "", sep = "")
+    return(p$heatmap)
     
-  },
-  content = function(file) {
+  })
+  
+  #10.1 Download expression heat map in PDF
+  #Create the download UI
+  output$expression_heatmap_download_cui <- renderUI({
     
-    shiny::withProgress(message = "Expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "exprHeatmap", fileext = ".html")
-      
-      p <- expression_heatmap_reactive()
-      
-      p$width <- input$expression_heatmap_width
-      p$height <- input$expression_heatmap_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "expression_heatmap_width", value = 1000)
-      updateNumericInput(session, "expression_heatmap_height", value = 1000)
-      
-    })
-  }
-  
-)
-
-#11. Co-expression heatmap
-output$correlation_heatmap <- renderPlotly({
-  
-  req(correlation_heatmap_reactive())
-  return(correlation_heatmap_reactive())
-  
-})
-
-#Co-expression heatmap in reactive expression
-correlation_heatmap_reactive <- reactive({
-  
-  req(data$f_database$NQS[input$user_complexes_rows_selected]>=2)
-  plotCorrelationHeatmap(names_vector = data$multiline_plot$subunits_names,
-                         index_vector = data$multiline_plot$index_vector,
-                         correlation_measure = input$correlation_measure,
-                         stats = data$f_stats,
-                         distance_measure = input$d_measure,
-                         agg_method = input$agg_method,
-                         p = ifelse(test = input$d_measure == "minkowski", 
-                                    yes = input$minkowski_p, 
-                                    no = NULL))
-  
-})
-
-#11.1 Download co-expression heat map in PDF
-#Create the download UI
-output$correlation_heatmap_download_cui <- renderUI({
-  
-  req(correlation_heatmap_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("correlation_heatmap_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("correlation_heatmap_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("correlation_heatmap_download","Download Figure")),
-         bsTooltip("correlation_heatmap_download", title = "Choose the width and height and download the above co-expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save the co-expression heatmap in PDF format.
-output$correlation_heatmap_download <- downloadHandler(
-  
-  filename = function() {
+    req(expression_heatmap_reactive())
     
-    paste("CoExpressionHeatmap_", Sys.time(), ".pdf", collapse = "", sep = "")
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_heatmap_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("expression_heatmap_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("expression_heatmap_download","Download Figure")),
+           bsTooltip("expression_heatmap_download", title = "Choose the width and height and download the above expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
     
-  },
-  content = function(file) {
+  })
+  
+  #Save the expression heatmap in PDF format.
+  output$expression_heatmap_download <- downloadHandler(
     
-    shiny::withProgress(message = "Co-expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+    filename = function() {
       
-      temp_name <- tempfile(pattern = "coExprHeatmap", fileext = ".html")
+      paste("ExpressionHeatmap_", Sys.time(), ".pdf", collapse = "", sep = "")
       
-      p <- correlation_heatmap_reactive()
+    },
+    content = function(file) {
       
-      p$width <- input$correlation_heatmap_width
-      p$height <- input$correlation_heatmap_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "correlation_heatmap_width", value = 1000)
-      updateNumericInput(session, "correlation_heatmap_height", value = 1000)
-      
-    })
-  }
-  
-)
-
-#12. Summary - barplot of changing complexes, according to set thresholds (FC, noise)
-
-output$summary_barplot <- renderPlotly({
-  
-  req(summary_barplot_reactive())
-  return(summary_barplot_reactive())
-  
-})
-
-#Reactive summary barplot.
-summary_barplot_reactive <- reactive({
-  
-  req(data$f_db_farms, data$no_cond)
-  regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
-  
-})
-
-#12.1 Download summary barplot in PDF
-#Create the download UI
-output$summary_barplot_download_cui <- renderUI({
-  
-  req(summary_barplot_reactive())
-  
-  tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("summary_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
-         div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("summary_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
-         div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("summary_barplot_download","Download Figure")),
-         bsTooltip("summary_barplot_download", title = "Choose the width and height and download the above co-expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
-  
-})
-
-#Save the summary barplot in PDF format.
-output$summary_barplot_download <- downloadHandler(
-  
-  filename = function() {
+      shiny::withProgress(message = "Expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "exprHeatmap", fileext = ".html")
+        
+        p <- expression_heatmap_reactive()
+        
+        p$width <- input$expression_heatmap_width
+        p$height <- input$expression_heatmap_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "expression_heatmap_width", value = 1000)
+        updateNumericInput(session, "expression_heatmap_height", value = 1000)
+        
+      })
+    }
     
-    paste("SummaryBarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+  )
+  
+  #11. Co-expression heatmap
+  output$correlation_heatmap <- renderPlotly({
     
-  },
-  content = function(file) {
+    req(correlation_heatmap_reactive())
+    return(correlation_heatmap_reactive())
     
-    shiny::withProgress(message = "Expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
-      
-      temp_name <- tempfile(pattern = "summaryBarplot", fileext = ".html")
-      
-      p <- summary_barplot_reactive()
-      
-      p$width <- input$summary_barplot_width
-      p$height <- input$summary_barplot_height
-      
-      shiny::incProgress(1, detail = "PDF rendering.")
-      htmlwidgets::saveWidget(p, temp_name)
-      
-      webshot2::webshot(url = temp_name, file = file)
-      
-      shiny::incProgress(1, detail = "PDF file is ready!")
-      unlink(temp_name)
-      unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
-      
-      updateNumericInput(session, "summary_barplot_width", value = 1000)
-      updateNumericInput(session, "summary_barplot_height", value = 1000)
-      
-    })
-  }
+  })
   
-)
-
-#13. Summary - top 5 table (Body) (Done)
-output$changing_table <- DT::renderDataTable({
+  #Co-expression heatmap in reactive expression
+  correlation_heatmap_reactive <- reactive({
+    
+    req(data$f_database$NQS[input$user_complexes_rows_selected]>=2)
+    plotCorrelationHeatmap(names_vector = data$multiline_plot$subunits_names,
+                           index_vector = data$multiline_plot$index_vector,
+                           correlation_measure = input$correlation_measure,
+                           stats = data$f_stats,
+                           distance_measure = input$d_measure,
+                           agg_method = input$agg_method,
+                           p = ifelse(test = input$d_measure == "minkowski", 
+                                      yes = input$minkowski_p, 
+                                      no = NULL))
+    
+  })
   
-  shiny::req(data$f_db_farms, input$summary_cond)
-  changingTable(f_db_farms = data$f_db_farms, cond = input$summary_cond, noise_th = input$noise_th, FC_th = input$FC_th)
+  #11.1 Download co-expression heat map in PDF
+  #Create the download UI
+  output$correlation_heatmap_download_cui <- renderUI({
+    
+    req(correlation_heatmap_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("correlation_heatmap_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("correlation_heatmap_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("correlation_heatmap_download","Download Figure")),
+           bsTooltip("correlation_heatmap_download", title = "Choose the width and height and download the above co-expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
   
-})
-
-#14. Summary - text
-output$summary <- renderText({
-  req(data$f_db_farms, data$no_cond, data$no_rep, input$summary_cond, input$noise_th)
-  complexDBsummary(data$f_db_farms, 
-                   no_cond = data$no_cond, 
-                   no_rep = data$no_rep, 
-                   condition = input$summary_cond, 
-                   noise_th = input$noise_th)})
-
-
-#15. Submission of human uniprot accession to CoExpresso
-observeEvent(input$CoExpresso,{
-  url <- 'http://computproteomics.bmb.sdu.dk:443/app_direct/CoExpresso/'
+  #Save the co-expression heatmap in PDF format.
+  output$correlation_heatmap_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("CoExpressionHeatmap_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Co-expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "coExprHeatmap", fileext = ".html")
+        
+        p <- correlation_heatmap_reactive()
+        
+        p$width <- input$correlation_heatmap_width
+        p$height <- input$correlation_heatmap_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "correlation_heatmap_width", value = 1000)
+        updateNumericInput(session, "correlation_heatmap_height", value = 1000)
+        
+      })
+    }
+    
+  )
   
-  complex_name <- data$f_database$Complex_Name[input$user_complexes_rows_selected]
-  subunits <- data$f_database$Subunits[[input$user_complexes_rows_selected]]
-  protein_list <- data$f_stats$absolute_df[, 1]
-  is_in_input <- subunits %in% protein_list
-  present_subunits <- subunits[is_in_input]
-  CoExpressoMessage <- toJSON(list(prot_list=present_subunits))
-  shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
-})
-
-observeEvent(input$CoExpressoFull,{
-  url <- 'http://computproteomics.bmb.sdu.dk:443/app_direct/CoExpresso/'
-  CoExpressoMessage <- toJSON(list(prot_list=data$f_database$Subunits[input$user_complexes_rows_selected]))
-  #print(data$f_database$Subunits[input$user_complexes_rows_selected])
-  shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
+  #12. Summary - barplot of changing complexes, according to set thresholds (FC, noise)
   
-})
-
+  output$summary_barplot <- renderPlotly({
+    
+    req(summary_barplot_reactive())
+    return(summary_barplot_reactive())
+    
+  })
+  
+  #Reactive summary barplot.
+  summary_barplot_reactive <- reactive({
+    
+    req(data$f_db_farms, data$no_cond)
+    regulatedBarplot(f_db_farms = data$f_db_farms, no_cond = data$no_cond, FC_th = input$FC_th,noise_th = input$noise_th)
+    
+  })
+  
+  #12.1 Download summary barplot in PDF
+  #Create the download UI
+  output$summary_barplot_download_cui <- renderUI({
+    
+    req(summary_barplot_reactive())
+    
+    tags$p(div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("summary_barplot_width", label = "Width: ", min = 0, max = 2500, value = 1000, step = 100, width = "250px")),
+           div(style="display: inline-block;vertical-align:top; width: 200px;", numericInput("summary_barplot_height", label = "Height: ", min = 0, max = 2500, value = 1000, step = 100, width = "200px")),
+           div(style="display: inline-block;margin: 25px 0px 0px 0px;", downloadButton("summary_barplot_download","Download Figure")),
+           bsTooltip("summary_barplot_download", title = "Choose the width and height and download the above co-expression heatmap in PDF format.", placement = "right", trigger = "hover", options = list(container = "body")))
+    
+  })
+  
+  #Save the summary barplot in PDF format.
+  output$summary_barplot_download <- downloadHandler(
+    
+    filename = function() {
+      
+      paste("SummaryBarplot_", Sys.time(), ".pdf", collapse = "", sep = "")
+      
+    },
+    content = function(file) {
+      
+      shiny::withProgress(message = "Expression heatmap download:", min = 0, max = 3, detail = "Preparing data.",value = 1, {
+        
+        temp_name <- tempfile(pattern = "summaryBarplot", fileext = ".html")
+        
+        p <- summary_barplot_reactive()
+        
+        p$width <- input$summary_barplot_width
+        p$height <- input$summary_barplot_height
+        
+        shiny::incProgress(1, detail = "PDF rendering.")
+        htmlwidgets::saveWidget(p, temp_name)
+        
+        webshot2::webshot(url = temp_name, file = file)
+        
+        shiny::incProgress(1, detail = "PDF file is ready!")
+        unlink(temp_name)
+        unlink(paste(gsub( ".html", "", temp_name), "_files", collapse = "", sep = ""), recursive = T)
+        
+        updateNumericInput(session, "summary_barplot_width", value = 1000)
+        updateNumericInput(session, "summary_barplot_height", value = 1000)
+        
+      })
+    }
+    
+  )
+  
+  #13. Summary - top 5 table (Body) (Done)
+  output$changing_table <- DT::renderDataTable({
+    
+    shiny::req(data$f_db_farms, input$summary_cond)
+    changingTable(f_db_farms = data$f_db_farms, cond = input$summary_cond, noise_th = input$noise_th, FC_th = input$FC_th)
+    
+  })
+  
+  #14. Summary - text
+  output$summary <- renderText({
+    req(data$f_db_farms, data$no_cond, data$no_rep, input$summary_cond, input$noise_th)
+    complexDBsummary(data$f_db_farms, 
+                     no_cond = data$no_cond, 
+                     no_rep = data$no_rep, 
+                     condition = input$summary_cond, 
+                     noise_th = input$noise_th)})
+  
+  
+  #15. Submission of human uniprot accession to CoExpresso
+  observeEvent(input$CoExpresso,{
+    url <- 'http://computproteomics.bmb.sdu.dk:443/app_direct/CoExpresso/'
+    
+    complex_name <- data$f_database$Complex_Name[input$user_complexes_rows_selected]
+    subunits <- data$f_database$Subunits[[input$user_complexes_rows_selected]]
+    protein_list <- data$f_stats$absolute_df[, 1]
+    is_in_input <- subunits %in% protein_list
+    present_subunits <- subunits[is_in_input]
+    CoExpressoMessage <- toJSON(list(prot_list=present_subunits))
+    shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
+  })
+  
+  observeEvent(input$CoExpressoFull,{
+    url <- 'http://computproteomics.bmb.sdu.dk:443/app_direct/CoExpresso/'
+    CoExpressoMessage <- toJSON(list(prot_list=data$f_database$Subunits[input$user_complexes_rows_selected]))
+    #print(data$f_database$Subunits[input$user_complexes_rows_selected])
+    shinyjs::runjs(paste("send_message(\"",url,"\",",CoExpressoMessage,")",sep=""))
+    
+  })
+  
 }
