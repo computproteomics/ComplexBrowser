@@ -27,7 +27,9 @@ library(shinycssloaders)
 source("Functions.R")
 
 # Application's header with custom dropdown menu.(Done)
-header <- shinydashboard::dashboardHeader(title = "ComplexBrowser", titleWidth = 250,
+header <- shinydashboard::dashboardHeader(title = tags$p(class = "dropdown",
+                                                          tags$img(src = "Logo2.svg", height = "25px")), 
+                                          titleWidth = 250,
                                           shiny::tags$li(class = "dropdown", shiny::tags$style(shiny::HTML(".text-info {color:#DD9977;}"))),
                                           shinydashboard::dropdownMenuOutput("notification_dropdown_menu"))
 
