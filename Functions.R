@@ -197,12 +197,6 @@ zScoreNormalization <- function(numeric_vector){
 }
 #4. Implementation of unpaired LIMMA test for grouped replicates
 limma_unpaired <- function(data, no_cond, no_rep, reference = 1){
-  if(!require("limma")){
-    install.packages("limma")
-  }
-  if(!require("qvalue")){
-    install.packages("qvalue")
-  }
   data_num <- log2(data[,2:(no_cond*no_rep+1)])
   data_num[(data_num)==(-Inf)]<-NA
   rownames(data_num) <- data[,1]
@@ -213,6 +207,7 @@ limma_unpaired <- function(data, no_cond, no_rep, reference = 1){
   for (condition in (1:no_cond)[-reference]){ 
     contrasts<-append(contrasts,paste(colnames(design)[condition],"-",colnames(design)[reference],sep=""))
   }
+  print(table(rowSums(!is.na(data_num))))
   contrast.matrix<- limma::makeContrasts(contrasts=contrasts,levels=design)
   lm.fitted <- lmFit(data_num,design)
   lm.contr <- contrasts.fit(lm.fitted,contrast.matrix)
@@ -1084,6 +1079,11 @@ complexFCfarms <- function(f_database, stats, proteins, row, no_cond, no_rep){
         return(x)
       })))
     
+    # remove proteins with now measurements
+    probes <- probes[rowSums(!is.na(probes)) > 1 , ]
+    if(nrow(probes) <= 1)
+        return(rep(NA, no_cond))
+
     FARMS <- fast.Farms(probes)
     
     #Adjusted probes should be scaled by weights sum.
