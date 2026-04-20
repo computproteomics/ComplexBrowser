@@ -7,7 +7,7 @@
    viewBox="0 0 1996.8184 233.76212"
    version="1.1"
    id="svg5"
-   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
    sodipodi:docname="Logo2.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -25,18 +25,20 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.19442866"
-     inkscape:cx="6776.2643"
-     inkscape:cy="912.93124"
-     inkscape:window-width="3702"
-     inkscape:window-height="2119"
-     inkscape:window-x="2058"
+     inkscape:cx="1602.1301"
+     inkscape:cy="912.93125"
+     inkscape:window-width="1860"
+     inkscape:window-height="1052"
+     inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      fit-margin-top="0"
      fit-margin-left="0"
      fit-margin-right="0"
-     fit-margin-bottom="0" />
+     fit-margin-bottom="0"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1" />
   <defs
      id="defs2">
     <clipPath
@@ -73,13 +75,13 @@
      transform="translate(10.054685,92.543315)">
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:186.377px;line-height:1.25;font-family:Kalimati;-inkscape-font-specification:Kalimati;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#f78100;fill-opacity:1;stroke:none;stroke-width:2.3297"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:186.377px;line-height:1.25;font-family:Kalimati;-inkscape-font-specification:Kalimati;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#50b2e5;fill-opacity:1;stroke:none;stroke-width:2.3297"
        x="239.93434"
        y="105.14017"
        id="text2466"><tspan
          sodipodi:role="line"
          id="tspan2464"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:186.377px;font-family:Kalimati;-inkscape-font-specification:Kalimati;fill:#f78100;fill-opacity:1;stroke-width:2.3297"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:186.377px;font-family:Kalimati;-inkscape-font-specification:Kalimati;fill:#50b2e5;fill-opacity:1;stroke-width:2.3297"
          x="239.93434"
          y="105.14017">COMPLEX BROWSER</tspan></text>
     <image
