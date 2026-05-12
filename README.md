@@ -78,7 +78,7 @@ The deployed app may also be available at:
 The historical tutorial is available here:
 <https://bitbucket.org/michalakw/complexbrowser/raw/dcaef828f7f0f9501c4f041391471b94acf00be1/Manual.pdf>
 
-## R API Usage
+## R Usage
 
 ### QC/statistics
 
