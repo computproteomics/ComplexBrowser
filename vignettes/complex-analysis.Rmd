@@ -1,0 +1,97 @@
+---
+title: "Complex Analysis Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Complex Analysis Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette runs protein complex analysis from R without a Shiny session. The
+workflow starts from QC statistics, selects a complex database, filters to one
+organism, scores matching complexes, and returns a display-ready result table.
+
+```{r load-input}
+library(complexbrowser)
+
+input_file <- complexbrowser_extdata_path("examples", "myo.csv")
+input <- read.csv(input_file, check.names = FALSE)
+
+qc <- complexbrowser_run_qc(
+  data = input,
+  no_cond = 6,
+  no_rep = 3,
+  log2 = FALSE,
+  grouped = TRUE,
+  q_values = TRUE,
+  normalization = NULL,
+  design = "unpaired"
+)
+```
+
+Run complex analysis with the bundled CORUM database. The `organism` value must
+match the organism labels used in the selected database.
+
+```{r run-complex-analysis}
+complex <- complexbrowser_run_complex_analysis(
+  stats = qc$stats,
+  database = "CORUM",
+  organism = "Human",
+  no_cond = 6,
+  no_rep = 3,
+  database_name = "CORUM"
+)
+
+complex$metadata
+```
+
+The result includes the filtered statistics, filtered database rows, score
+matrix, scored database, display table, and metadata. The display table is the
+same table shape used by the Shiny app download.
+
+```{r inspect-complexes}
+display_columns <- c(
+  "ComplexID",
+  "Complex_Name",
+  "NUS",
+  "NQS",
+  "Coverage",
+  "FC C2/C1",
+  "Noise"
+)
+
+head(complex$display_table[, display_columns])
+```
+
+ComplexBrowser can also generate a short condition-specific summary from the
+scored database. Lower `noise_threshold` values make this summary more
+selective.
+
+```{r summarize-complexes}
+summary_text <- complexbrowser_complex_summary(
+  complex$scored_database,
+  no_cond = 6,
+  no_rep = 3,
+  condition = 2,
+  noise_threshold = 0.5
+)
+
+cat(summary_text)
+```
+
+Write the complex table when using the result in a command-line or pipeline
+workflow.
+
+```{r write-output, eval=FALSE}
+complexbrowser_write_complex_table(
+  complex$display_table,
+  file = "myo-corum-complexes.csv"
+)
+```

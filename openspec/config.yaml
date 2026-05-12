@@ -1,0 +1,89 @@
+schema: spec-driven
+
+context: |
+  Project: ComplexBrowser, currently an R/Shiny application for supervised
+  proteomics analysis focused on protein complexes. The strategic direction is
+  to evolve it into a more capable, installable R package with a Shiny app,
+  reusable R APIs, and command-line workflows that can integrate cleanly with
+  other software.
+
+  Current entry points:
+  - inst/shiny/ui.R defines the shinydashboard interface, tabs, controls, and plot outputs.
+  - inst/shiny/server.R defines Shiny reactives, data loading, QC processing, analysis, and downloads.
+  - inst/shiny/Global.R loads prepared CORUM and EBI Complex Portal RDS databases at startup.
+  - R/ contains package APIs for data preparation, QC/statistics, complex analysis, exports, and CLI workflows.
+  - inst/shiny/R/ contains Shiny-only plotting and UI helper functions.
+  - inst/shiny/QCreport.rmd is the quality-control report template.
+  - inst/shiny/www/ and inst/shiny/styling/ contain static assets, JavaScript integration, and CSS.
+  - inst/shiny/data/ contains Shiny example input data.
+  - inst/extdata/examples/ contains reusable example input files for R and CLI workflows.
+  - data-raw/legacy/ contains historical source data and old database snapshots that are not shipped in package builds.
+
+  Target architecture:
+  - Core data validation, QC/statistics, normalization, database preparation,
+    complex matching, complex scoring, summarization, and export logic should
+    move toward package functions callable without Shiny.
+  - The Shiny app should become a thin interactive layer over package APIs.
+  - Command-line workflows should support headless execution, especially complex
+    analysis, with explicit input files, database selection, thresholds, output
+    paths, structured result files, clear diagnostics, and non-interactive failure.
+  - External software integration should prefer stable R functions and structured
+    interchange formats such as CSV, TSV, JSON, and RDS.
+  - Public R APIs should use documented arguments, predictable return objects,
+    stable column names, and explicit error messages.
+
+  Domain model:
+  - Input data is a tabular quantitative proteomics matrix.
+  - The first column is the protein identifier; measurement columns are condition/replicate intensities.
+  - q-value columns may be supplied, or q-values may be calculated with LIMMA.
+  - Protein complexes are matched through CORUM, EBI Complex Portal, or a user-defined database.
+  - Current observable behavior is documented in openspec/specs/.
+
+  Engineering conventions:
+  - Preserve existing Shiny reactive flows unless a change explicitly replaces them.
+  - Keep numerical behavior, column names, file naming, and threshold semantics backwards compatible.
+  - Treat bundled RDS/CSV/PDF assets as application data unless a change explicitly updates them.
+  - Keep install-time assets under inst/; keep historical or source-only data under data-raw/.
+  - Avoid adding runtime package installation paths; dependencies should be documented or installed by deployment.
+  - Prefer narrow, staged changes that separate package extraction from behavior changes.
+  - Separate I/O, validation, computation, plotting, reporting, and Shiny rendering.
+  - Write short, focused functions with one clear responsibility.
+  - Prefer guard clauses and small helpers over deeply nested if/else blocks.
+  - Avoid long functions; split functions before they become difficult to test or review.
+  - Keep side effects explicit. Computation functions should return data rather than mutate Shiny state.
+  - Use package namespaces for dependencies and avoid hidden global state in package APIs.
+
+rules:
+  proposal:
+    - Start with the user-visible workflow or scientific-analysis behavior being changed.
+    - State whether the change affects package APIs, command-line workflows, Shiny UI, inputs, outputs, databases, reports, or downloads.
+    - "For package or CLI work, identify the intended caller: R user, Shiny app, shell workflow, or external software."
+    - Include backwards-compatibility notes for existing CSV/TXT files and bundled RDS databases.
+    - Include migration notes when moving logic out of ui.R, server.R, Global.R, or legacy helper files.
+    - List non-goals when the change could be confused with a larger analysis-method rewrite.
+  specs:
+    - Use RFC 2119 keywords such as SHALL, MUST, SHOULD, and MAY.
+    - Use testable Scenario sections in Given/When/Then form.
+    - Specify observable behavior, inputs, outputs, thresholds, file formats, command-line behavior, and error states; avoid implementation steps.
+    - Cover R API, CLI, and Shiny behavior separately when they differ.
+    - Include scenarios for invalid input, missing files, unsupported databases, and no-match complex analysis results when relevant.
+    - Keep source-of-truth specs under openspec/specs/<domain>/spec.md.
+    - For change specs, use ADDED, MODIFIED, and REMOVED Requirements sections.
+  design:
+    - Reference affected files and reactive/data-flow boundaries.
+    - Describe numerical/statistical implications before UI details.
+    - For package extraction, define proposed R/ modules, public functions, return object shapes, and documentation needs.
+    - For command-line work, define arguments, defaults, input/output formats, logging, error handling, and exit-code expectations.
+    - Cover database compatibility, report generation, external-service effects, and external software integration when relevant.
+    - Include a code-structure section that explains how long functions and deep nesting will be avoided.
+    - Prefer pure helper functions for calculations and thin wrappers for Shiny, CLI, file I/O, and reports.
+    - Identify manual Shiny checks needed for plots, downloads, and browser messaging.
+  tasks:
+    - Break work into small, reviewable steps that can be validated independently.
+    - Separate mechanical package-structure moves from behavioral changes.
+    - Include checks for R package load/install, exported function examples, command-line smoke tests, data loading, QC/statistics, complex analysis, and downloads when touched.
+    - Call out any required sample data, RDS fixture, or browser-based manual test.
+    - Include unit tests for newly extracted computation and validation functions.
+    - Include documentation tasks for public R functions and command-line usage.
+    - Add explicit refactoring tasks when a function would otherwise become long or deeply nested.
+    - Keep task wording imperative and specific enough to execute without rereading the proposal.

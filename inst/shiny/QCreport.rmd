@@ -1,0 +1,709 @@
+---
+title: "ComplexBrowser - QC Report"
+output:
+ pdf_document:
+    latex_engine: pdflatex
+mainfont: Arial
+fontsize: 12pt
+params:
+  stats: NA
+  file: NA
+  no_cond: NA
+  no_rep: NA
+  QC_report: NA
+  log: NA
+  normalization: NA
+  colors: !r c('#e6194b', '#3cb44b','#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6',
+               '#ffe119','#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8',
+               '#800000','#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080')
+---
+
+```{r global.options, include = TRUE, echo = FALSE}
+
+knitr::opts_chunk$set(
+    cache       = FALSE,     
+    fig.width   = 7,       
+    fig.height  = 5,
+    fig.align   = "center", 
+    fig.path    = "figs/",  
+    results     = "asis",   
+    echo        = FALSE,     
+    message     = FALSE,     
+    strip.white = TRUE,     
+    warning     = FALSE)
+
+```
+
+```{r load.packages, warning = FALSE, message = FALSE}
+  
+  library(rmarkdown)
+  library(knitr)
+  library(ggplot2)
+  library(grid)
+  library(gridExtra)
+  library(lattice)
+  library(GGally)
+  library(cowplot)
+
+```
+
+```{r dynamic.size, include = TRUE}
+
+dynamic_figure_size <- function(graph, fig_width, fig_height) {
+  
+  graph_string <- paste(deparse(function() {graph}), collapse = "", sep = "")
+
+  sub_chunk_string <- paste("`", "``{r sub_chunk_", ceiling(runif(1, min = 0, max = 5000)), 
+                            ", fig.height = ", fig_height, ", fig.width = ", fig_width, "}",
+                            "\n(", graph_string, ")()", "\n`", "``", collapse = "", sep = "")
+
+  cat(knitr::knit(text = knitr::knit_expand(text = sub_chunk_string), quiet = TRUE))
+  
+}
+
+```
+
+This is a quality control report generated on `r Sys.Date()` by the ComplexBrowser.  
+The input data set (`r if(!is.null(params$file$name)){params$file$name}else{"Table S2_Statistics_T-cell_cut.csv"}`) had `r params$no_cond` conditions and  `r params$no_rep` replicates with `r length(params$stats$absolute_df[,1])` proteins quantified.
+
+## Data characteristics
+### Distribution and correlation
+
+```{r boxplot, eval = TRUE}
+
+#Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+  
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+  
+  
+} else {
+  
+  palette <- params$colors
+  
+}
+
+
+palette <- palette[1:params$no_cond]
+  
+for (i in 1:params$no_cond) {
+    
+  lower <- col2rgb(palette[i])[which(col2rgb(palette[i]) == min(col2rgb(palette[i])))[1]]
+  lower.seq <- ceiling(seq(lower, 150, (150-lower)/params$no_rep))
+    
+  col.df <- col2rgb(rep(palette[i], params$no_rep))
+  col.df[which(col2rgb(palette[i]) == min(col2rgb(palette[i])))[1],] <- lower.seq[1:params$no_rep]
+    
+  palette.temp <- rgb(t(col.df), maxColorValue = 255)
+    
+  palette <- c(palette, palette.temp)
+    
+}
+
+#Use the method of normalization in the QC report
+if(is.na(params$normalization)){
+  
+  method <- "no normalization"
+  
+} else {
+  
+  method <- paste(tolower(params$normalization), " normalization", sep = "", collapse = "")
+  
+}
+
+#It should be clear wheather data are in log scale or not.
+if(params$log){
+  
+  data <- stack(params$stats$absolute_df[,-1])
+
+} else {
+  
+  data <- stack(log2(params$stats$absolute_df[,-1]))
+  
+}
+
+condition <- unlist(lapply(1:params$no_cond, function(x) rep(toString(x), params$no_rep*nrow(params$stats$absolute_df))))
+data <- cbind(data, condition)
+
+ggplot2::ggplot(na.omit(data),  ggplot2::aes(x = ind , y = values, fill = condition, color = ind)) +
+                ggplot2::geom_boxplot(alpha = 0.5, show.legend = FALSE) +
+                ggplot2::theme_light() +
+                ggplot2::scale_color_manual(values = alpha(palette[(params$no_cond+1):((params$no_cond*params$no_rep)+1+params$no_cond)], 0.5)) +
+                ggplot2::scale_fill_manual(values = palette[1:params$no_cond]) +
+                ggplot2::labs(title = paste("Data distribution (", method, ")", sep = "", collapse = ""), x = "Sample", y = "Log2(Intensity)") +
+                ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
+                               axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+shiny::incProgress(1, detail = "Box plot created.")
+
+```
+
+```{r meanTable, eval = TRUE}
+
+  pander::panderOptions("digits", 4)
+  pander::panderOptions("round", 4)
+  pander::panderOptions("keep.trailing.zeros", TRUE)
+  pander::pander(params$QC_report$VAL_t, caption = "Mean Log2(Intensity) values table", split.cells = 5, split.table = Inf)
+  
+  shiny::incProgress(1, detail = "Mean table rendered.")
+  
+```
+
+```{r ggpairsPlot, eval=TRUE}
+
+df <- data.frame(params$stats$log2_means)
+colnames(df) <- paste0("C", 1:params$no_cond)
+
+#Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+
+
+} else {
+
+  palette <- params$colors
+
+}
+
+
+palette <- palette[1:params$no_cond]
+
+
+lowerFn <- function(data, mapping, method = "lm", palette) {
+  
+  column <- substring(as.character(mapping), 2)
+  ncolumn <- unlist(lapply(column ,function(x) which(colnames(data) == x)))
+  color <- rgb(t(rowSums(col2rgb(c(palette[ncolumn[1]], palette[ncolumn[2]]))/2)), maxColorValue = 255)
+
+  p <- ggplot2::ggplot(data = data, mapping = mapping) +
+                       ggplot2::geom_point(colour = color, size = 1, alpha = 0.4) +
+                       ggplot2::geom_smooth(method = method, color = "red", linetype = "dashed", size = 0.5) +
+                       ggplot2::theme_light()
+  
+  return(p)
+  
+}
+
+
+
+diagFn <- function(data, mapping, palette){
+
+  column <- substring(as.character(mapping), 2)
+  ncolumn <- which(colnames(data) == column)
+
+  p <- ggplot2::ggplot(data = data, mapping = mapping) +
+                       ggplot2::geom_density(fill = alpha(palette[ncolumn], 0.5), colour = palette[ncolumn]) +
+                       ggplot2::theme_light()
+
+  return(p)
+  
+}
+
+
+upperFn <- function(data, mapping, palette, sizeRange = c(1, 5)) {
+
+  column <- substring(as.character(mapping), 2)
+  ncolumn <- unlist(lapply(column ,function(x) which(colnames(data) == x)))
+  color <- rgb(t(rowSums(col2rgb(c(palette[ncolumn[1]], palette[ncolumn[2]]))/2)), maxColorValue = 255)
+  cor <- round(cor(data[,ncolumn[1]], data[,ncolumn[2]], use = "complete.obs"), digits = 3)
+  cor.c <- paste("Corr: ", as.character(cor), sep = "", collapse = "")
+
+  p <- GGally::ggally_text(label = cor.c, xP = 0.5, yP = 0.5, size = 3, color = color) +
+                           ggplot2::theme(panel.grid.minor = ggplot2::element_blank(), 
+                                          panel.grid.major = ggplot2::element_blank(), 
+                                          panel.background = ggplot2::element_rect(fill = "white", color = "white"))
+
+  heatGradient <- colorRampPalette(c("red", "purple", "blue", "yellow", "chartreuse3"))
+  heatGradient <- heatGradient(101)
+  p = p + ggplot2::theme(panel.background = ggplot2::element_rect(fill= alpha(heatGradient[round(cor*50+51, digits = 0)], 0.3), 
+                         color = heatGradient[round(cor*50+51, digits = 0)]))
+  
+  return(p)
+  
+}
+
+GGally::ggpairs(data = df, 
+                lower = list(continuous = GGally::wrap(lowerFn, method = "lm", palette = palette)),
+                diag = list(continuous = GGally::wrap(diagFn, palette = palette)),
+                upper = list(continuous = GGally::wrap(upperFn, palette = palette)),
+                title = "Paired correlation plot") + 
+                ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5, face = "plain"),
+                               axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+shiny::incProgress(1, detail = "Paired correlation plot created.")
+
+```
+
+\newpage
+
+#### Missing values across samples
+We have found `r sum(is.na(params$stats$absolute_df))` missing values in your data, that account to
+`r round(sum(is.na(params$stats$absolute_df))*100/(length(params$stats$absolute_df[,1])*params$no_cond*params$no_rep),3)` [%] of all values.
+
+```{r barplot, eval = TRUE}
+
+#Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+  
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+  
+  
+} else {
+  
+  palette <- params$colors
+  
+}
+
+
+palette <- palette[1:params$no_cond]
+  
+for (i in 1:params$no_cond) {
+    
+  lower <- col2rgb(palette[i])[which(col2rgb(palette[i]) == min(col2rgb(palette[i])))[1]]
+  lower.seq <- ceiling(seq(lower, 150, (150-lower)/params$no_rep))
+    
+  col.df <- col2rgb(rep(palette[i], params$no_rep))
+  col.df[which(col2rgb(palette[i]) == min(col2rgb(palette[i])))[1],] <- lower.seq[1:params$no_rep]
+    
+  palette.temp <- rgb(t(col.df), maxColorValue = 255)
+    
+  palette <- c(palette,palette.temp)
+    
+}
+
+na_sums <- colSums(is.na(params$stats$absolute_df[,-1]))
+na_sums <- stack(na_sums)
+na_sums$condition <- unlist(lapply(1:params$no_cond, function(x) rep(LETTERS[x], params$no_rep)))
+
+ggplot2::ggplot(data = na_sums, mapping = ggplot2::aes(x = ind, y = values, color = condition, fill = ind)) + 
+                ggplot2::geom_bar(stat = "identity", alpha = 0.5, show.legend = FALSE) + 
+                ggplot2::theme_light() +
+                ggplot2::scale_fill_manual(values = alpha(palette[(params$no_cond+1):((params$no_cond*params$no_rep)+1+params$no_cond)], 0.5)) +
+                ggplot2::scale_color_manual(values = palette[1:params$no_cond]) +
+                ggplot2::scale_y_continuous(limits = c(0, if(max(na_sums$values) == 0){1}else{max(na_sums$values)})) +
+                ggplot2::labs(title = "Missing values across samples", x = "Sample", y = "Number of missing values") +
+                ggplot2::theme(text = element_text(size = 9), plot.title = element_text(size = 10, hjust = 0.5),
+                               axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+shiny::incProgress(1, detail = "Barplot created.")
+
+```
+
+\newpage
+
+#### Data quality - Coefficient of Variation
+
+```{r CVplot, eval = TRUE}
+
+#Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+
+
+} else {
+
+  palette <- params$colors
+
+}
+
+
+palette <- palette[1:params$no_cond]
+
+x_max <- max(params$stats$CV_df, na.rm = T)
+
+p <- vector("list", params$no_cond)
+y_ <- rep(NA, params$no_cond)
+ 
+for (i in 1:params$no_cond) {
+   
+  to.plot <- data.frame(A = na.omit(params$stats$CV_df[,i]))
+  
+  p[[i]] <- ggplot2::ggplot(data = to.plot, ggplot2::aes(A)) + 
+                            ggplot2::geom_histogram(binwidth = x_max/50, ggplot2::aes(y = x_max/50*..density..),
+                                                    col = palette[i],  
+                                                    fill = alpha(palette[i], 0.2)) + 
+                            ggplot2::theme_minimal() +
+                            ggplot2::labs(title = paste("Distribution of CV in C", i, sep = "", collapse = "")) +
+                            ggplot2::labs(x = "CV [%]", y = "Relative frequency") +
+                            ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
+                                           axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+  
+  y_[i] <- ggplot2::layer_scales(p[[i]])$y$range$range[2]
+   
+}
+ 
+y_max <- max(y_)
+
+for (i in 1:params$no_cond) {
+   
+  p[[i]] <- p[[i]] + ggplot2::ylim(c(0, y_max)) + ggplot2::xlim(c(-x_max/100, x_max))
+   
+}
+
+if(params$QC_report$r > 2){
+  
+  for (i in 1:length(p)) {
+    
+    if(i%%4 == 1){
+      
+      if((length(p) + 1) - i == 3){
+        
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:length(p)], ncol = params$QC_report$c, nrow = 2), fig_width = 6, fig_height = 4)
+        
+      } else if((length(p) + 1) - i <= 2){
+      
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:length(p)], ncol = params$QC_report$c, nrow = 1), fig_width = 6, fig_height = 2.5)
+        
+      } else {
+        
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:(i+3)], ncol = params$QC_report$c, nrow = 2), fig_width = 6, fig_height = 4)
+        
+      }
+      
+    }
+    
+  }
+  
+} else if(params$QC_report$r == 1){
+  
+  dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p, ncol = params$QC_report$c, nrow = 1), fig_width = 7, fig_height = 2.5)
+  
+} else {
+  
+  gridExtra::grid.arrange(grobs = p, ncol = params$QC_report$c, nrow = params$QC_report$r)
+  
+}
+
+shiny::incProgress(1, detail = "CV plot created.")
+
+```
+
+```{r CVTable, eval = TRUE}
+
+  pander::panderOptions("digits", 4)
+  pander::panderOptions("round", 4)
+  pander::panderOptions("keep.trailing.zeros", TRUE)
+  pander::pander(params$QC_report$CV_t, caption = "Coefficient of Variation across conditions", split.cells = 5, split.table = Inf)
+  
+```
+
+In case of label free experiments median CV values should not exceed 15% for the data to be considered of good quality. For labeled experiments this value should be even lower. 
+
+\newpage
+
+#### Data insights - Q Values and Fold Changes
+
+Complex expressions after fast-FARMS summarization are in log2 scale.  
+$\\[10pt]$
+Log fold changes are calculated as:
+$\\[10pt]$
+$LogFC = I_{2}-I_{1}\\[20pt]$
+And fold changes as:
+$\\[10pt]$
+$FC = \begin{cases} 2^{LogFC}  \quad \text{ ,when } LogFC \ge 0\\\dfrac{-1}{2^{LogFC}} \quad \text{ ,when } LogFC < 0\end{cases}\\[10pt]$
+
+```{r qValuesPlot, eval = TRUE}
+
+#Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+
+
+} else {
+
+  palette <- params$colors
+
+}
+
+
+palette <- palette[1:params$no_cond]
+
+palette_mix <- unlist(lapply(2:params$no_cond, function(x) rgb(t(rowSums(col2rgb(c(palette[1], palette[x]))/2)), maxColorValue = 255)))
+
+x_max <- max(params$stats$qValue_df, na.rm = T)
+
+p <- vector("list", (params$no_cond - 1))
+y_ <- rep(NA, (params$no_cond - 1))
+
+for (i in 1:(params$no_cond - 1)) {
+ 
+   to.plot <- data.frame(A = na.omit(params$stats$qValue_df[,i]))
+ 
+   p[[i]] <- ggplot2::ggplot(data = to.plot, ggplot2::aes(A)) +
+                             ggplot2::geom_histogram(binwidth = x_max/50, ggplot2::aes(y = x_max/50*..density..),
+                                                     col = palette_mix[i],
+                                                     fill = alpha(palette_mix[i], 0.2)) +
+                             ggplot2::theme_minimal() +
+                             ggplot2::labs(title = paste("Distribution of q Values C", i+1, "/C1", sep = "", collapse = "")) +
+                             ggplot2::labs(x = "q Value", y = "Relative frequency") +
+                             ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
+                                            axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+                             
+    
+   y_[i] <- ggplot2::layer_scales(p[[i]])$y$range$range[2]
+ 
+}
+
+y_max <- max(y_)
+
+for (i in 1:(params$no_cond - 1)) {
+
+  p[[i]] <- p[[i]] + ggplot2::ylim(c(0, y_max)) + ggplot2::xlim(c(-x_max/100, x_max+x_max/100))
+
+}
+
+if(length(p) > 4){
+
+  for (i in 1:length(p)) {
+
+    if(i%%4 == 1){
+
+      if(length(p) - i == 3){
+
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:length(p)], ncol = params$QC_report$c, nrow = 2), fig_width = 6, fig_height = 4)
+        
+      } else if(length(p) - i <= 2) {
+      
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:length(p)], ncol = params$QC_report$c, nrow = 1), fig_width = 6, fig_height = 2)
+        
+      } else {
+
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:(i+3)], ncol = params$QC_report$c, nrow = 2), fig_width = 6, fig_height = 4)
+
+      }
+
+    }
+
+  }
+
+} else if(length(p) <= 2){
+  
+  dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p, ncol = params$QC_report$c, nrow = 1), fig_width = 7, fig_height = 2.5)
+  
+} else {
+
+  gridExtra::grid.arrange(grobs = p, ncol = params$QC_report$c, nrow = params$QC_report$r)
+
+}
+
+shiny::incProgress(1, detail = "Q-values plot created.")
+
+```
+
+```{r qValuesTable, eval = TRUE}
+
+  pander::panderOptions("digits", 4)
+  pander::panderOptions("round", 4)
+  pander::panderOptions("keep.trailing.zeros", TRUE)
+  pander::pander(params$QC_report$qValue_t, caption = "Q Values across conditions", split.cells = 5, split.table = Inf)
+  
+  shiny::incProgress(1, detail = "Q-values table rendered.")
+  
+```
+
+```{r pagebreak, eval = TRUE}
+  
+if(params$no_cond <= 3){
+    
+  cat("\\pagebreak")
+    
+}
+
+```
+
+```{r FCTable, eval = TRUE}
+
+  pander::panderOptions("digits", 4)
+  pander::panderOptions("round", 4)
+  pander::panderOptions("keep.trailing.zeros", TRUE)
+  pander::pander(params$QC_report$fc_t, caption = "Fold changes across conditions", split.cells = 5, split.table = Inf)
+  
+  shiny::incProgress(1, detail = "Fold change table rendered.")
+  
+```
+
+```{r volcanoPlot, eval = TRUE}
+
+  #Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+
+
+} else {
+
+  palette <- params$colors
+
+}
+
+
+palette <- palette[1:params$no_cond]
+
+palette_mix <- unlist(lapply(2:params$no_cond, function(x) rgb(t(rowSums(col2rgb(c(palette[1], palette[x]))/2)), maxColorValue = 255)))
+
+x_lim <- range(params$stats$log2_ratios, na.rm = T)
+y_lim <- c(min(-log10(params$stats$qValue_df), na.rm = T), max(-log10(params$stats$qValue_df), na.rm = T))
+  
+p <- vector("list", (params$no_cond - 1))
+
+for (i in 1:(params$no_cond - 1)) {
+ 
+   to.plot <- data.frame(R = params$stats$log2_ratios[,i], Q = -log10(params$stats$qValue_df[,i]))
+   to.plot <- na.omit(to.plot)
+   to.plot$color <- NA
+   to.plot$color[which(to.plot$Q >= -log10(0.01))] <- "over"
+   to.plot$color[which(to.plot$Q < -log10(0.01) & to.plot$Q >= -log10(0.05))] <- "mid"
+   to.plot$color[which(to.plot$Q < -log10(0.05))] <- "below"
+   
+   mid.color <- rgb(t(ceiling(col2rgb(palette_mix[i])/2)), maxColorValue = 255)
+ 
+   p[[i]] <- ggplot2::ggplot(data = to.plot, ggplot2::aes(x = R, y = Q, color = color)) +
+                             ggplot2::geom_point(alpha = 0.5, size = 0.2) +
+                             ggplot2::theme_light() +
+                             ggplot2::scale_color_manual(values = c("black", mid.color, palette_mix[i])) +
+                             ggplot2::ylim(y_lim) + ggplot2::xlim(x_lim) +
+                             ggplot2::geom_hline(yintercept = c(-log10(0.01), -log10(0.05)), linetype = "dashed", color = c(palette_mix[i], mid.color)) +
+                             ggplot2::annotate(geom = "text", label = c("q-value = 0.01", "q-value = 0.05"), size = 2,
+                                               x = rep(x_lim[1] + sum(abs(x_lim[1]) + abs(x_lim[2]))*10/100, 2), 
+                                               y = c(-log10(0.01), -log10(0.05)), vjust = 1.2, color = c(palette_mix[i], mid.color)) +
+                             ggplot2::labs(title = paste("Volcano plot C", i + 1, "/C1", sep = "", collapse = "")) +
+                             ggplot2::labs(x = "Log2(Ratio)", y = "-Log10(qValue)") +
+                             ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5), legend.position = "none",
+                                            axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+ 
+}
+
+if(length(p) > 4){
+
+  for (i in 1:length(p)) {
+
+    if(i%%4 == 1){
+
+      if(length(p) - i == 3){
+
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:length(p)], ncol = params$QC_report$c, nrow = 2), fig_width = 6, fig_height = 4)
+        
+      } else if(length(p) - i <= 2) {
+      
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:length(p)], ncol = params$QC_report$c, nrow = 1), fig_width = 6, fig_height = 2)
+        
+      } else {
+
+        dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p[i:(i+3)], ncol = params$QC_report$c, nrow = 2), fig_width = 6, fig_height = 4)
+
+      }
+
+    }
+
+  }
+
+} else if(length(p) <= 2){
+  
+  dynamic_figure_size(graph = gridExtra::grid.arrange(grobs = p, ncol = params$QC_report$c, nrow = 1), fig_width = 7, fig_height = 2.5)
+  
+} else {
+
+  gridExtra::grid.arrange(grobs = p, ncol = params$QC_report$c, nrow = params$QC_report$r)
+
+}
+
+shiny::incProgress(1, detail = "Volcano plot created.")
+
+```
+
+\newpage
+
+#### Data insights - Principal Component Analysis
+
+```{r PCAPlot, eval = TRUE}
+
+#Makes sure it won't run out of colors.
+if(length(params$colors) < params$no_cond){
+  
+  palette <- rep(params$colors, ceiling((params$no_cond)/length(params$colors)))
+  
+  
+} else {
+  
+  palette <- params$colors
+  
+}
+
+
+palette <- palette[1:params$no_cond]
+
+for (i in 1:params$no_cond) {
+    
+  lower <- col2rgb(palette[i])[which(col2rgb(palette[i]) == min(col2rgb(palette[i])))[1]]
+  lower.seq <- ceiling(seq(lower, 150, (150-lower)/params$no_rep))
+    
+  col.df <- col2rgb(rep(palette[i], params$no_rep))
+  col.df[which(col2rgb(palette[i]) == min(col2rgb(palette[i])))[1],] <- lower.seq[1:params$no_rep]
+    
+  palette.temp <- rgb(t(col.df), maxColorValue = 255)
+    
+  palette <- c(palette, palette.temp)
+    
+}
+
+pca_obj <- stats::prcomp(na.omit(params$stats$log2_absolute_df), scale = TRUE, retx = TRUE)
+condition_factors <- paste("C", rep(1:params$no_cond, each = params$no_rep), sep = "")
+samples <- colnames(params$stats$absolute_df)
+pca_obj$rotation <- data.frame(pca_obj$rotation, Condition = condition_factors, Sample = samples[2:ncol(params$stats$absolute_df)])
+
+PC1.2 <- ggplot2::ggplot(data = pca_obj$rotation, ggplot2::aes(x = PC1, y = PC2, color = Condition, fill = Sample)) +
+                         ggplot2::geom_point(alpha = 0.9, size = 2, shape = 21) +
+                         ggplot2::theme_light() +
+                         ggplot2::scale_fill_manual(values = palette[(params$no_cond+1):((params$no_cond*params$no_rep)+1+params$no_cond)]) +
+                         ggplot2::scale_color_manual(values = palette[1:params$no_cond]) +
+                         ggplot2::labs(title = "PCA - Component 1 vs Component 2",
+                                       x = paste("Component 1 - ", round(pca_obj$sdev[1]^2/(sum(pca_obj$sdev^2))*100, 2), "[%]", collapse = "", sep = ""),
+                                       y = paste("Component 2 - ", round(pca_obj$sdev[2]^2/(sum(pca_obj$sdev^2))*100, 2), "[%]", collapse = "", sep = "")) +
+                         ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5), legend.key.size = unit(0.5, "line"),
+                                        axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+PC1.3 <- ggplot2::ggplot(data = pca_obj$rotation, ggplot2::aes(x = PC1, y = PC3, color = Condition, fill = Sample)) +
+                         ggplot2::geom_point(alpha = 0.9, size = 2, shape = 21) +
+                         ggplot2::theme_light() +
+                         ggplot2::scale_fill_manual(values = palette[(params$no_cond+1):((params$no_cond*params$no_rep)+1+params$no_cond)]) +
+                         ggplot2::scale_color_manual(values = palette[1:params$no_cond]) +
+                         ggplot2::labs(title = "PCA - Component 1 vs Component 3",
+                                       x = paste("Component 1 - ", round(pca_obj$sdev[1]^2/(sum(pca_obj$sdev^2))*100, 2), "[%]", collapse = "", sep = ""),
+                                       y = paste("Component 3 - ", round(pca_obj$sdev[3]^2/(sum(pca_obj$sdev^2))*100, 2), "[%]", collapse = "", sep = "")) +
+                         ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
+                                        axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+PC2.3 <- ggplot2::ggplot(data = pca_obj$rotation, ggplot2::aes(x = PC2, y = PC3, color = Condition, fill = Sample)) +
+                         ggplot2::geom_point(alpha = 0.9, size = 2, shape = 21) +
+                         ggplot2::theme_light() +
+                         ggplot2::scale_fill_manual(values = palette[(params$no_cond+1):((params$no_cond*params$no_rep)+1+params$no_cond)]) +
+                         ggplot2::scale_color_manual(values = palette[1:params$no_cond]) +
+                         ggplot2::labs(title = "PCA - Component 2 vs Component 3",
+                                       x = paste("Component 2 - ", round(pca_obj$sdev[2]^2/(sum(pca_obj$sdev^2))*100, 2), "[%]", collapse = "", sep = ""),
+                                       y = paste("Component 3 - ", round(pca_obj$sdev[3]^2/(sum(pca_obj$sdev^2))*100, 2), "[%]", collapse = "", sep = "")) +
+                         ggplot2::theme(text = ggplot2::element_text(size = 9), plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
+                                        axis.text.x = ggplot2::element_text(size = 7), axis.text.y = ggplot2::element_text(size = 7))
+
+gridExtra::grid.arrange(PC1.2 + ggplot2::theme(legend.position = "none"),
+                        PC1.3 + ggplot2::theme(legend.position = "none"),
+                        PC2.3 + ggplot2::theme(legend.position = "none"),
+                        gridExtra::arrangeGrob(grobs = c(cowplot::get_legend(PC1.2)$grobs[3],
+                                                         cowplot::get_legend(PC1.2)$grobs[1],
+                                                         cowplot::get_legend(PC1.2)$grobs[2]), ncol = 3, nrow = 1, widths = c(0.1 ,0.5, 0.4)),
+                        nrow = 2, ncol = 2)
+
+
+shiny::incProgress(1, detail = "PCA plot created.")
+
+```
+
+```{r knittingProgress, eval = TRUE}
+
+shiny::setProgress(message = "Knitting: ")
+shiny::incProgress(1, detail = "please wait.")
+
+```

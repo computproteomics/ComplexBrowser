@@ -1,0 +1,93 @@
+---
+title: "Quality Control Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Quality Control Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette runs the ComplexBrowser quality-control workflow from R without a
+Shiny session. The example data are bundled with the package and contain raw
+protein intensities for six conditions with three replicates per condition.
+q-value columns are already present in the input file.
+
+```{r load-input}
+library(complexbrowser)
+
+input_file <- complexbrowser_extdata_path("examples", "myo.csv")
+input <- read.csv(input_file, check.names = FALSE)
+
+dim(input)
+names(input)[1:8]
+```
+
+Run QC with the same settings that would be selected interactively in the Shiny
+app. `log2 = FALSE` tells ComplexBrowser that the intensity values are still on
+the raw scale. `grouped = TRUE` means replicate columns are adjacent by
+condition. `q_values = TRUE` means statistical columns are read from the input
+instead of being calculated with LIMMA.
+
+```{r run-qc}
+qc <- complexbrowser_run_qc(
+  data = input,
+  no_cond = 6,
+  no_rep = 3,
+  log2 = FALSE,
+  grouped = TRUE,
+  q_values = TRUE,
+  normalization = NULL,
+  design = "unpaired"
+)
+
+qc$metadata
+dim(qc$merged_table)
+```
+
+The returned object contains the prepared input, the statistics object used by
+later workflows, a merged display table, and metadata.
+
+```{r inspect-qc}
+qc_columns <- c(
+  "ProteinID",
+  "Mean intensity C1",
+  "Mean intensity C2",
+  "Condition_1_CV",
+  "Condition_2_CV",
+  "qValue C2"
+)
+
+head(qc$merged_table[, qc_columns])
+```
+
+The QC report helper prepares the compact summary tables used by the Shiny
+report template. These tables are often enough for scripted checks or quick
+inspection.
+
+```{r report-data}
+report_data <- complexbrowser_prepare_qc_report_data(
+  qc$stats,
+  no_cond = 6,
+  no_rep = 3
+)
+
+report_data$VAL_t
+report_data$CV_t
+```
+
+Write the merged statistics table when another tool needs to consume the QC
+result.
+
+```{r write-output, eval=FALSE}
+complexbrowser_write_input_statistics(
+  qc$merged_table,
+  file = "myo-qc-statistics.csv"
+)
+```

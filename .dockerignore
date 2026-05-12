@@ -1,0 +1,12 @@
+.git
+.Rbuildignore
+.Rhistory
+.Rproj.user
+.vscode
+*.Rproj
+*.tar.gz
+Dockerfile~
+data-raw
+openspec
+tests
+*.Rcheck
