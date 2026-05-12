@@ -1,0 +1,4 @@
+#!/usr/bin/env Rscript
+
+status <- complexbrowser::complexbrowser_cli(commandArgs(trailingOnly = TRUE))
+quit(save = "no", status = as.integer(status), runLast = FALSE)

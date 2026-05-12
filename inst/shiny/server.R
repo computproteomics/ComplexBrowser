@@ -4,6 +4,44 @@
 
 options(shiny.maxRequestSize=2000*1024^2)
 
+complexbrowser_app_paths_file <- local({
+  frame_file <- tryCatch(normalizePath(sys.frame(1)$ofile, mustWork = TRUE), error = function(e) "")
+  candidates <- c(
+    file.path(dirname(frame_file), "app_paths.R"),
+    "app_paths.R",
+    file.path("inst", "shiny", "app_paths.R")
+  )
+  candidates[file.exists(candidates)][[1]]
+})
+options(complexbrowser.app_dir = dirname(normalizePath(complexbrowser_app_paths_file, mustWork = TRUE)))
+source(complexbrowser_app_paths_file, local = FALSE)
+
+if (requireNamespace("complexbrowser", quietly = TRUE)) {
+  complexbrowser_run_qc <- complexbrowser::complexbrowser_run_qc
+  complexbrowser_prepare_input_table <- complexbrowser::complexbrowser_prepare_input_table
+  complexbrowser_calculate_statistics <- complexbrowser::complexbrowser_calculate_statistics
+  complexbrowser_run_complex_analysis <- complexbrowser::complexbrowser_run_complex_analysis
+  complexbrowser_input_statistics_filename <- complexbrowser::complexbrowser_input_statistics_filename
+  complexbrowser_complex_table_filename <- complexbrowser::complexbrowser_complex_table_filename
+  complexbrowser_write_input_statistics <- complexbrowser::complexbrowser_write_input_statistics
+  complexbrowser_write_complex_table <- complexbrowser::complexbrowser_write_complex_table
+  complexbrowser_prepare_qc_report_data <- complexbrowser::complexbrowser_prepare_qc_report_data
+} else {
+  source(complexbrowser_repo_path("R", "input.R"), local = FALSE)
+  source(complexbrowser_repo_path("R", "database.R"), local = FALSE)
+  source(complexbrowser_repo_path("R", "qc.R"), local = FALSE)
+  source(complexbrowser_repo_path("R", "complex_analysis.R"), local = FALSE)
+  source(complexbrowser_repo_path("R", "summaries.R"), local = FALSE)
+  source(complexbrowser_repo_path("R", "exports.R"), local = FALSE)
+}
+
+complexbrowser_default_design <- function(design) {
+  if (is.null(design) || length(design) == 0 || is.na(design)) {
+    return("unpaired")
+  }
+  design
+}
+
 
 
 function(input,output,session){
@@ -13,6 +51,9 @@ function(input,output,session){
   #Custom notification dropdown menu function. (Done)
   output$notification_dropdown_menu <- shinydashboard::renderMenu({
     
+    notification_Cite <- shinydashboard::notificationItem(text = "Publication (please cite)", icon = shiny::icon("book-open"), status = "info", href = paste0("cite"))
+    notification_Cite$children[[1]] <- shiny::tags$a(href = "https://www.mcponline.org/article/S1535-9476(20)31768-0/fulltext", target = "_blank", list(notification_Cite$children[[1]]$children))
+
     notification_SC <- shinydashboard::notificationItem(text = "Source code and installation", icon = shiny::icon("file-code-o"), status = "info", href = paste0("noti"))
     notification_SC$children[[1]] <- shiny::tags$a(href = "https://bitbucket.org/michalakw/complexbrowser/", target = "_blank", list(notification_SC$children[[1]]$children))
     
@@ -28,7 +69,7 @@ function(input,output,session){
     notification_Contact <- shinydashboard::notificationItem(text = "Report a Bug!", icon = shiny::icon("bug"), status = "info", href = paste0("bug"))
     notification_Contact$children[[1]] <- shiny::tags$a(href = "mailto:veits@bmb.sdu.dk", target = "_blank", list(notification_Contact$children[[1]]$children))
     
-    notification_menu <- shinydashboard::dropdownMenu(notification_SC,
+    notification_menu <- shinydashboard::dropdownMenu(notification_Cite,notification_SC,
                                                       notification_Tut,
                                                       notification_Corum,
                                                       notification_Portal,
@@ -42,15 +83,6 @@ function(input,output,session){
     
   })
   
-  #Custom notification for sidebar menu. (Done)
-  output$notification_sidebar <- shinydashboard::renderMenu({
-    
-    notification_Citation <- shinydashboard::notificationItem(text = "Publication (please cite)", icon = shiny::icon("book-open"), href = paste0("cite"))
-    notification_Citation$children[[1]] <- shiny::tags$a(href = "https://www.mcponline.org/content/early/2019/08/25/mcp.TIR119.001434", target = "_blank", list(notification_Citation$children[[1]]$children))
-    
-    return(notification_Citation)
-    
-  })
   
   ############################### INITIALIZE INPUT OBJECTS #######################################
   
@@ -124,11 +156,13 @@ function(input,output,session){
     
     if(input$database == "CORUM"){
       
-      shiny::selectInput(inputId = "species", label = "Species", choices = unique(corum_prepared$Organism), selected = "Human")
+      species <- complexbrowser_species_selection(corum_prepared, stats = data$stats, preferred = "Human")
+      shiny::selectInput(inputId = "species", label = "Species", choices = species$choices, selected = species$selected)
       
     } else if(input$database == "EBI Complex Portal"){ 
       
-      shiny::selectInput(inputId = "species", label = "Species", choices = unique(complex_portal_prepared$Organism), selected = "Homo sapiens")
+      species <- complexbrowser_species_selection(complex_portal_prepared, stats = data$stats, preferred = "Homo sapiens")
+      shiny::selectInput(inputId = "species", label = "Species", choices = species$choices, selected = species$selected)
       
     }
     
@@ -248,12 +282,12 @@ function(input,output,session){
     
     filename = function(){
       
-      paste("MSComplexR_Input_WithStats", Sys.time(), ".csv", sep = "")
+      complexbrowser_input_statistics_filename()
       
     },
     content = function(file){
       
-      write.csv(data$input_stats_merged, file, row.names = FALSE)
+      complexbrowser_write_input_statistics(data$input_stats_merged, file)
       
     },
     contentType = "text/csv"
@@ -264,18 +298,18 @@ function(input,output,session){
     
     filename = function(){
       
-      paste("Protein_complex_resutls", Sys.time(), ".csv", sep = "")
+      complexbrowser_complex_table_filename()
       
     },
     content = function(file) {
       
-      write.csv(data$for_display, file, row.names = FALSE)
+      complexbrowser_write_complex_table(data$for_display, file)
       
     },
     contentType = "text/csv"
   )
   
-  #3. Generate QC data (generateQCreport()), create QC report (QCreport.rmd template) and download QC report. (Done)
+  #3. Generate QC data, create QC report (QCreport.rmd template) and download QC report. (Done)
   output$QC_report <- shiny::downloadHandler(
     
     filename = function() {
@@ -286,9 +320,9 @@ function(input,output,session){
     },
     content = function(file) {
       
-      data$QC_report <- generateQCreport(data$stats, no_cond = data$no_cond, no_rep = data$no_rep)
+      data$QC_report <- complexbrowser_prepare_qc_report_data(data$stats, no_cond = data$no_cond, no_rep = data$no_rep)
       tempReport <- file.path(tempdir(), "QCreport.rmd")
-      file.copy("QCreport.rmd", tempReport, overwrite = TRUE)
+      file.copy(complexbrowser_app_path("QCreport.rmd"), tempReport, overwrite = TRUE)
       params <- list(stats = data$stats, 
                      no_cond = data$no_cond, 
                      no_rep = data$no_rep, 
@@ -370,28 +404,26 @@ function(input,output,session){
             
           }
           else{
-            data$user_input <- renameAndSort(data = user_input, 
-                                             no_cond = input$no_conditions,
-                                             no_rep = input$no_replicates,
-                                             qValues = input$statistics,
-                                             grouped = input$grouped,
-                                             log2 = input$log2)
+            qc_result <- complexbrowser_run_qc(data = user_input,
+                                                     no_cond = input$no_conditions,
+                                                     no_rep = input$no_replicates,
+                                                     q_values = input$statistics,
+                                                     grouped = input$grouped,
+                                                     log2 = input$log2,
+                                                     normalization = NULL,
+                                                     design = complexbrowser_default_design(input$design))
+            data$user_input <- qc_result$input
             #By default do not put any normalisation step!
             data$file_indicator <- TRUE
             data$no_cond <- input$no_conditions
             data$no_rep <- input$no_replicates
             data$grouped <- input$grouped
-            data$stats <- calculateStatistics(data = data$user_input, 
-                                              no_cond = data$no_cond, 
-                                              no_rep = data$no_rep,
-                                              qValues = input$statistics,
-                                              normalize = NULL,
-                                              design = input$design)
+            data$stats <- qc_result$stats
             
             shiny::incProgress(1, detail = "Statistics calculated.")
             
             #To preserve the column names a separate cbind for matrices and data frames is needed
-            data$input_stats_merged <-  isolate(cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11])))
+            data$input_stats_merged <-  isolate(qc_result$merged_table)
             data$no_proteins <- length(data$user_input[,1])
             output$input_file <- renderDataTable({ 
               DT::datatable(data = data$input_stats_merged,
@@ -417,16 +449,20 @@ function(input,output,session){
       shiny::withProgress(message = "Example data:", min = 0, max = 2, detail = "Loading example data.",value = 1, {
         
         data$file_indicator <- TRUE
-        data$user_input <- read.csv("Table S2_Statistics_T-cell_cut.csv")
+        data$user_input <- read.csv(complexbrowser_app_path("data", "example_tcell_cut.csv"))
         data$no_cond <- 4
         data$no_rep <- 2
         data$grouped <- TRUE
-        data$stats <- calculateStatistics(data = data$user_input, 
-                                          no_cond = data$no_cond, 
-                                          no_rep =  data$no_rep,
-                                          qValues = FALSE,
-                                          normalize = NULL,
-                                          design = "unpaired")
+        qc_result <- complexbrowser_run_qc(data = data$user_input,
+                                                 no_cond = data$no_cond,
+                                                 no_rep = data$no_rep,
+                                                 q_values = FALSE,
+                                                 normalization = NULL,
+                                                 log2 = FALSE,
+                                                 grouped = TRUE,
+                                                 design = "unpaired")
+        data$user_input <- qc_result$input
+        data$stats <- qc_result$stats
         # change rulers
         updateSliderInput(session, "no_conditions",value=data$no_cond)
         updateSliderInput(session, "no_replicates",value=data$no_rep)
@@ -438,7 +474,7 @@ function(input,output,session){
         
         data$no_proteins <- length(data$user_input[,1])
         #To preserve the column names a separate cbind for matrices and data frames is needed
-        data$input_stats_merged <-  cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
+        data$input_stats_merged <-  qc_result$merged_table
         output$input_file <- renderDataTable({
           DT::datatable( data$input_stats_merged,
                          options = list(scrollX = TRUE),
@@ -460,12 +496,12 @@ function(input,output,session){
         
         normalization_type$type <- input$norm_technique
         
-        data$stats <- isolate(calculateStatistics(data = data$user_input, 
-                                                  no_cond = data$no_cond, 
-                                                  no_rep =  data$no_rep,
-                                                  qValues = input$statistics,
-                                                  normalize = input$norm_technique,
-                                                  design = input$design))
+        data$stats <- isolate(complexbrowser_calculate_statistics(data = data$user_input,
+                                                                        no_cond = data$no_cond,
+                                                                        no_rep = data$no_rep,
+                                                                        q_values = input$statistics,
+                                                                        normalization = input$norm_technique,
+                                                                        design = complexbrowser_default_design(input$design)))
         
         shiny::incProgress(1, detail = "Calculating.")
         
@@ -518,12 +554,12 @@ function(input,output,session){
             tdat <- tdat[rowSums(!is.na(tdat[,2:ncol(tdat)])) > 0,  , drop=F]
             
             
-            data$user_input <- renameAndSort(data = tdat, 
-                                             no_cond = NumCond,
-                                             no_rep = NumReps,
-                                             qValues = F,
-                                             grouped = isGrouped,
-                                             log2 = T)
+            data$user_input <- complexbrowser_prepare_input_table(data = tdat,
+                                                                        no_cond = NumCond,
+                                                                        no_rep = NumReps,
+                                                                        q_values = FALSE,
+                                                                        grouped = isGrouped,
+                                                                        log2 = TRUE)
             
             
             data$no_cond <- NumCond
@@ -543,12 +579,13 @@ function(input,output,session){
               shiny::validate(need(nrow(tdat) == nrow(data$user_input), paste("statistical table does not have the same number of rows")))
               data$user_input <- cbind(data$user_input, tdat)
             }            
-            data$stats <- calculateStatistics(data = data$user_input, 
-                                              no_cond = data$no_cond, 
-                                              no_rep =  data$no_rep,
-                                              qValues = withStats,
-                                              normalize = NULL,
-                                              design = ifelse(isPaired, "paired","unpaired"))
+            data$stats <- complexbrowser_calculate_statistics(data = data$user_input,
+                                                                    no_cond = data$no_cond,
+                                                                    no_rep = data$no_rep,
+                                                                    q_values = withStats,
+                                                                    normalization = NULL,
+                                                                    design = ifelse(isPaired, "paired","unpaired"))
+            data$input_stats_merged <- cbind(data$stats[[1]], do.call(what = "cbind", data$stats[2:11]))
             
             # change rulers
             updateSliderInput(session, "no_conditions",value=data$no_cond)
@@ -1086,23 +1123,27 @@ function(input,output,session){
       shiny::withProgress(message = "Analysing protein complexes in your data", min = 0, max = 4, value = 0, {
         
         if(input$database == "CORUM"){
-          
           database <- corum_prepared
-          
         } else if(input$database == "EBI Complex Portal"){
-          
           database <- complex_portal_prepared
-          
         } else if(input$database == "User defined database"){
-          
           shiny::req(input$user_database$datapath)
-          database <- prepareUserDB(input$user_database$datapath)
-          
+          database <- input$user_database$datapath
         }
         
         shiny::incProgress(1, detail = "DB established.")
-        index_vector <- which(data$stats$absolute_df[,1] %in% unique(unlist(database[database$Organism == input$species,]$Subunits)))
-        data$f_stats <- lapply(data$stats, function(x) if(!is.vector(x)){return(x[index_vector,])}else{return(x[index_vector])})
+        complex_result <- complexbrowser_run_complex_analysis(stats = data$stats,
+                                                                    database = database,
+                                                                    organism = input$species,
+                                                                    no_cond = data$no_cond,
+                                                                    no_rep = data$no_rep,
+                                                                    database_name = input$database)
+        data$f_stats <- complex_result$filtered_stats
+        data$f_database <- complex_result$filtered_database
+        data$f_db_farms <- complex_result$scored_database
+        data$for_display <- complex_result$display_table
+        data$no_complexes <- complex_result$metadata$no_complexes
+        data$no_proteins_used <- complex_result$metadata$no_proteins_used
         shiny::incProgress(1, detail = "DB search")
         
         # Enable buttons for sending human proteins to CoExpresso
@@ -1118,8 +1159,6 @@ function(input,output,session){
           
         }
         
-        data$f_database <- filterDatabase(f_data = data$f_stats$absolute_df,database = database, organism = input$species)
-        
         if (is.null(data$f_database)) {
           
           return(DT::datatable(data.frame(Warning = paste0("No complexes found for ", input$species, "."), stringsAsFactors = F),
@@ -1128,13 +1167,8 @@ function(input,output,session){
           
         } else {
           
-          data$no_complexes <- length(data$f_database[,1])  
-          data$no_proteins_used <- length(data$f_stats$absolute_df[,1])
           shiny::incProgress(1, "Complexes expression calculation.")
-          data$f_db_farms <- cbind(data$f_database, complexDBfarms(f_database = data$f_database, stats = data$f_stats, no_cond = data$no_cond, no_rep = data$no_rep))
           shiny::incProgress(1, "Data aggregation.")
-          #Change a vector to string for better display (subunits)
-          data$for_display <- concatinateSubunits(filtered_database = data$f_db_farms)
           
           #Hover labels for the table
           container <- generateColLabels(data$no_cond, database = input$database)

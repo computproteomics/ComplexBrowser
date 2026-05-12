@@ -1,0 +1,7 @@
+- [x] Move Shiny entry files, assets, report template, and example input under `inst/shiny/`.
+- [x] Add app-relative path helpers for source-checkout and installed-package execution.
+- [x] Add an exported package helper for launching the installed Shiny app.
+- [x] Move remaining root-level data files into package-managed or source-only locations.
+- [x] Update README and OpenSpec project context for the new layout.
+- [x] Add a package-api requirement for the packaged Shiny app location.
+- [x] Run package and OpenSpec validation.

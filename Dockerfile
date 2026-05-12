@@ -1,43 +1,60 @@
 FROM rocker/shiny
+
 LABEL maintainer="Veit Schwaemmle <veits@bmb.sdu.dk>"
-LABEL description="Docker image of ComplexBrowser implementation on top of shiny-server. The number of to-be-installed R packages requires patience when building this image."
+LABEL description="Docker image for the packaged ComplexBrowser Shiny app."
 
-#RUN  sudo mount -o ro,remount /sys && sudo  mount -o rw,remount /sys
-#RUN echo N | tee /sys/module/overlay/parameters/metacopy
-#RUN rm -rf /var/cache/apt/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
-#RUN apt-get clean && apt-get update && apt-get install -y apt-utils
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y libssl-dev liblzma-dev libbz2-dev libicu-dev libxml2 libxml2-dev libglpk-dev texlive-latex-recommended texlive-latex-extra && apt-get clean 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libglpk-dev \
+    libicu-dev \
+    libjpeg-dev \
+    liblzma-dev \
+    libpng-dev \
+    libssl-dev \
+    libtiff-dev \
+    libxml2-dev \
+    texlive-latex-extra \
+    texlive-latex-recommended \
+    wget \
+  && rm -rf /var/lib/apt/lists/*
 
-RUN R -e "install.packages('BiocManager', repos='http://cloud.r-project.org'); \
-  update.packages(ask=F); \
-  BiocManager::install(c('dplyr','plotly'),ask=F)"
-RUN R -e "library(BiocManager); BiocManager::install(c('networkD3','data.table','stringr','DT','MASS','pracma','preprocessCore','limma','qvalue','colourpicker',\
-  'shinydashboard','rmarkdown','shinyBS','heatmaply','devtools','GGally','shinycssloaders','cowplot','pander','tinytex','colourpicker','biomaRt', 'gtools','webshot2'),ask=F)"
-#RUN R -e "library(devtools);install_version('rmarkdown', version = '1.8')"
-# get recent libraries for figure download and report
-#RUN R -e "remotes::install_github('rstudio/webshot2'); tinytex::install_tinytex()"
+RUN Rscript -e "install.packages('BiocManager', repos = 'https://cloud.r-project.org'); \
+  BiocManager::install(c( \
+    'colourpicker', 'cowplot', 'dplyr', 'DT', 'GGally', 'ggplot2', \
+    'gridExtra', 'gtools', 'heatmaply', 'htmlwidgets', 'jsonlite', \
+    'knitr', 'limma', 'networkD3', 'pander', 'plotly', 'pracma', \
+    'preprocessCore', 'qvalue', 'rmarkdown', 'shiny', 'shinyBS', \
+    'shinycssloaders', 'shinydashboard', 'shinyjs', 'webshot2' \
+  ), ask = FALSE, update = FALSE)"
 
-# needs google-chrome to run the webshot
-RUN wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
-RUN apt-get install -y ./google-chrome-stable_current_amd64.deb && rm google-chrome-stable_current_amd64.deb 
-RUN sed -i '${s/$/ --no-sandbox/g}'  /opt/google/chrome/google-chrome
+RUN wget -q "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb \
+  && rm google-chrome-stable_current_amd64.deb \
+  && rm -rf /var/lib/apt/lists/* \
+  && sed -i '${s/$/ --no-sandbox/g}' /opt/google/chrome/google-chrome
 
-#RUN R -e "install.packages('BiocManager', repos='http://cran.us.r-project.org'); \
-#  update.packages(ask=F); \
-#  BiocManager::install();\
-#  BiocManager::install(c('gclus'),ask=F)"
+WORKDIR /opt/complexbrowser
 
+COPY DESCRIPTION NAMESPACE README.md ./
+COPY R ./R
+COPY man ./man
+COPY inst ./inst
+COPY exec ./exec
+COPY vignettes ./vignettes
 
-RUN rm -rf /srv/shiny-server
-RUN mkdir /srv/shiny-server
-COPY *R  /srv/shiny-server/
-COPY *Rds  /srv/shiny-server/
-COPY *csv  /srv/shiny-server/
-COPY *pdf  /srv/shiny-server/
-COPY *.rmd /srv/shiny-server/
-RUN mkdir /srv/shiny-server/styling
-RUN mkdir /srv/shiny-server/www
-COPY www/* /srv/shiny-server/www/
-COPY styling/* /srv/shiny-server/styling/
+RUN R CMD INSTALL --no-build-vignettes .
 
+RUN rm -rf /srv/shiny-server/* \
+  && cp -a "$(Rscript -e 'cat(system.file(\"shiny\", package = \"complexbrowser\"))')"/* /srv/shiny-server/ \
+  && chown -R shiny:shiny /srv/shiny-server
+
+EXPOSE 3838
+
+CMD ["/usr/bin/shiny-server"]

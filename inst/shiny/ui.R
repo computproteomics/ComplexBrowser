@@ -24,7 +24,21 @@ library(lattice)
 library(cowplot)
 library(shinycssloaders)
 
-source("Functions.R")
+complexbrowser_app_paths_file <- local({
+  frame_file <- tryCatch(normalizePath(sys.frame(1)$ofile, mustWork = TRUE), error = function(e) "")
+  candidates <- c(
+    file.path(dirname(frame_file), "app_paths.R"),
+    "app_paths.R",
+    file.path("inst", "shiny", "app_paths.R")
+  )
+  candidates[file.exists(candidates)][[1]]
+})
+options(complexbrowser.app_dir = dirname(normalizePath(complexbrowser_app_paths_file, mustWork = TRUE)))
+source(complexbrowser_app_paths_file, local = FALSE)
+
+source(complexbrowser_app_path("R", "plots_qc.R"))
+source(complexbrowser_app_path("R", "plots_complex.R"))
+source(complexbrowser_app_path("R", "ui_helpers.R"))
 
 # Application's header with custom dropdown menu.(Done)
 header <- shinydashboard::dashboardHeader(title = tags$p(class = "dropdown",
@@ -113,7 +127,7 @@ sidebar <- shinydashboard::dashboardSidebar(width = 250,
 body <- dashboardBody(
   tags$script(src = "CallShiny.js"),
 
-  includeCSS("styling/ComplexBrowser.css"),
+  includeCSS(complexbrowser_app_path("styling", "ComplexBrowser.css")),
   shinyjs::useShinyjs(),
   tabItems(
     ##### TAB 1 - Data quality control #####
@@ -304,8 +318,6 @@ body <- dashboardBody(
                 ))))))
 
 dashboardPage(header,sidebar,body, skin = "black")
-
-
 
 
 
