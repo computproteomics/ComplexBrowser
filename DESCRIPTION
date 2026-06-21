@@ -10,6 +10,8 @@ Description: Reusable workflows for ComplexBrowser proteomics quality control
     application, R package APIs, and non-interactive command-line integration.
 License: GPL-3
 Encoding: UTF-8
+Depends:
+    R (>= 3.5.0)
 Imports:
     gtools,
     limma,

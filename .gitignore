@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+*.Rcheck/
+..Rcheck/
+*.tar.gz
+Dockerfile~
+vignettes/*.csv

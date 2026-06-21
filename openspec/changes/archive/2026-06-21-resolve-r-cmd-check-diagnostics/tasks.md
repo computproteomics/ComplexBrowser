@@ -1,0 +1,9 @@
+- [x] Capture and attach the exact `00check.log` or console output showing the 4 warnings and 2 notes.
+- [x] Classify each warning/note as package-owned or environment-owned.
+- [x] Fix package-owned metadata diagnostics in `DESCRIPTION`, `.Rbuildignore`, `.dockerignore`, or file layout.
+- [x] Fix package-owned documentation diagnostics in `man/` or vignettes.
+- [x] Fix package-owned runtime diagnostics in examples, tests, or vignette chunks.
+- [x] Re-run `R CMD build` with vignettes enabled.
+- [x] Re-run `R CMD check --no-manual` and require zero package-owned warnings and notes.
+- [x] Record any remaining environment-owned diagnostics and their reproduction conditions.
+- [x] Validate OpenSpec specs in strict mode.
