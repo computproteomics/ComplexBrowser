@@ -1,0 +1,119 @@
+
+R version 4.5.2 (2025-10-31) -- "[Not] Part in a Rumble"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "complexbrowser"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> library('complexbrowser')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("complexbrowser-package")
+> ### * complexbrowser-package
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: complexbrowser-package
+> ### Title: ComplexBrowser proteomics quality-control and protein-complex
+> ###   workflows
+> ### Aliases: complexbrowser-package complexbrowser
+> 
+> ### ** Examples
+> 
+> library(complexbrowser)
+> 
+> input_file <- system.file(
++   "shiny", "data", "example_tcell_cut.csv",
++   package = "complexbrowser"
++ )
+> input <- read.csv(input_file, check.names = FALSE)
+> 
+> qc <- suppressWarnings(complexbrowser_run_qc(
++   input,
++   no_cond = 4,
++   no_rep = 2,
++   log2 = FALSE,
++   grouped = TRUE,
++   q_values = FALSE
++ ))
+> 
+> qc$metadata
+$no_cond
+[1] 4
+
+$no_rep
+[1] 2
+
+$log2
+[1] FALSE
+
+$grouped
+[1] TRUE
+
+$q_values
+[1] FALSE
+
+$normalization
+NULL
+
+$design
+[1] "unpaired"
+
+> 
+> sort(unique(complexbrowser_load_corum()$Organism))
+ [1] "Bovine"   "Dog"      "Hamster"  "Human"    "MINK"     "Mammalia"
+ [7] "Mouse"    "Pig"      "Rabbit"   "Rat"     
+> 
+> 
+> 
+> cleanEx()
+> nameEx("complexbrowser_run_app")
+> ### * complexbrowser_run_app
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: complexbrowser_run_app
+> ### Title: Launch the packaged ComplexBrowser Shiny app
+> ### Aliases: complexbrowser_run_app
+> 
+> ### ** Examples
+> 
+> ## Not run: 
+> ##D complexbrowser_run_app()
+> ## End(Not run)
+> 
+> 
+> 
+> 
+> ### * <FOOTER>
+> ###
+> cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  1.901 0.038 1.939 0 0 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

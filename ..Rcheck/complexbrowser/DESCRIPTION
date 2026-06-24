@@ -1,0 +1,19 @@
+Package: complexbrowser
+Type: Package
+Title: Protein Complex Analysis Workflows
+Version: 0.0.0.9000
+Authors@R: person("ComplexBrowser contributors", email = "veits@bmb.sdu.dk", role = c("aut", "cre"))
+Author: ComplexBrowser contributors
+Maintainer: ComplexBrowser contributors <veits@bmb.sdu.dk>
+Description: Reusable workflows for ComplexBrowser proteomics quality control
+    and protein complex analysis, with support for the existing Shiny
+    application, R package APIs, and non-interactive command-line integration.
+License: GPL-3
+Encoding: UTF-8
+Depends: R (>= 3.5.0)
+Imports: gtools, limma, preprocessCore, qvalue
+Suggests: knitr, rmarkdown, shiny, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.3
+Built: R 4.5.2; ; 2026-06-23 14:50:02 UTC; unix

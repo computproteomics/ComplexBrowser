@@ -52,16 +52,12 @@ assert_count <- function(value, name) {
 
 sample_column_names <- function(no_cond, no_rep, grouped) {
   if (isTRUE(grouped)) {
-    return(unlist(lapply(seq_len(no_cond), function(condition) {
-      paste0("C", condition, "_", seq_len(no_rep))
-    }), use.names = FALSE))
+    unlist(lapply(seq_len(no_cond), function(c) paste0("C", c, "_", seq_len(no_rep))), use.names = FALSE)
+  } else {
+    unlist(lapply(seq_len(no_rep), function(r) paste0("C", seq_len(no_cond), "_", r)), use.names = FALSE)
   }
-
-  unlist(lapply(seq_len(no_rep), function(replicate) {
-    paste0("C", seq_len(no_cond), "_", replicate)
-  }), use.names = FALSE)
 }
 
 qvalue_column_names <- function(no_cond) {
-  paste("qValue C", 2:no_cond, sep = "")
+  paste0("qValue C", 2:no_cond)
 }

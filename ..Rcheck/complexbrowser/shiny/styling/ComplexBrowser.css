@@ -1,0 +1,54 @@
+.content-wrapper, .right-side {
+  background-color: #ffffff;
+}
+.shiny-download-link {
+  display: inline-block; 
+  margin:0 auto;
+}
+
+.shiny-text-output {
+  text-align: center;
+  font-size: 14pt;
+}
+
+.skin-black .sidebar a {
+    color: #444444;
+}
+
+#input_stats_download, #load_example, #complex_table_DH, #QC_report, #run_QC, #run_analysis{
+  display: block; 
+  width: 220px;
+  margin: 0 auto;
+  margin-bottom: 10px;
+}
+#complex_table_DH{
+  display: block; 
+  width: 235px;
+  margin: 0 auto;
+  margin-bottom: 10px;
+}
+
+#no_conditions, #decimal, #in_file, #no_replicates, #separator, #CV_colour, #qV_colour, .form-group{
+    display: block;
+    margin:0 auto; 
+    text-align: center;
+}
+
+#uniprot {
+ text-align: right;
+ margin-left: 20px;
+}
+#multiple {
+  text-align: left;
+  margin-right: 10px;
+  margin-left: 20px;
+}
+#uniprot, #multiple {
+  display: inline-block;
+  vertical-align: top;
+  margin: 5px;
+}
+#norm_run {
+  margin-top: 25px; 
+  margin-left: 50px;
+}

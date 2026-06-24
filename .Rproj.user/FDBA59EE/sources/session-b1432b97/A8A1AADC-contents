@@ -1,0 +1,127 @@
+---
+title: "Quality Control Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Quality Control Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4
+)
+```
+
+This vignette shows a compact R workflow for quality control of a quantitative
+proteomics table. The example file contains protein identifiers, intensity
+columns, and q-value columns.
+
+```{r load-input}
+library(complexbrowser)
+
+input_file <- system.file("extdata", "examples", "myo.csv", package = "complexbrowser")
+input <- read.csv(input_file, check.names = FALSE)
+
+n_conditions <- 6
+n_replicates <- 3
+
+dim(input)
+names(input)[1:10]
+```
+
+The first column contains protein identifiers. The next `n_conditions *
+n_replicates` columns contain the quantitative values. In this file the
+replicates are grouped by condition, so the first three quantitative columns
+belong to condition 1, the next three to condition 2, and so on.
+
+```{r plot-input-distribution}
+measurement_columns <- 2:(n_conditions * n_replicates + 1)
+measurements <- as.matrix(input[, measurement_columns])
+
+boxplot(
+  log2(measurements),
+  las = 2,
+  ylab = "log2 intensity",
+  main = "Sample intensity distributions"
+)
+```
+
+Run the QC workflow. `log2 = FALSE` means that the intensity values are on the
+raw scale. `q_values = FALSE` calculates q-values instead of reading them from
+the input file. `statistic = "polystest"` uses the combined PolySTest FDR; use
+`statistic = "limma"` when the limma FDR returned by PolySTest is wanted.
+
+```{r run-qc}
+qc <- complexbrowser_run_qc(
+  data = input,
+  no_cond = n_conditions,
+  no_rep = n_replicates,
+  log2 = FALSE,
+  grouped = FALSE,
+  q_values = FALSE,
+  normalization = NULL,
+  design = "unpaired",
+  statistic = "polystest"
+)
+
+qc$metadata
+dim(qc$merged_table)
+```
+ 
+The result contains the prepared input table, per-protein statistics, a merged
+table for export, and metadata. The statistics list is the object used by the
+complex-analysis workflow.
+
+```{r inspect-statistics}
+qc_columns <- c(
+  "ProteinID",
+  "Mean intensity C1",
+  "Mean intensity C2",
+  "Condition_1_CV",
+  "Condition_2_CV",
+  "qValue C2",
+  "Fold change C2/C1"
+)
+
+head(qc$merged_table[, qc_columns])
+```
+
+Coefficient of variation helps identify conditions with broad replicate spread.
+
+```{r plot-cv}
+boxplot(
+  qc$stats$CV_df,
+  las = 2,
+  ylab = "CV (%)",
+  main = "Coefficient of variation by condition"
+)
+```
+
+Fold change and q-value can be inspected together for a condition-versus-control
+comparison. Here, condition 2 is compared with condition 1.
+
+```{r plot-qvalue-fold-change}
+plot(
+  qc$stats$log2_ratios[, "Log2(ratio) C2/C1"],
+  -log10(qc$stats$qValue_df[, "qValue C2"]),
+  pch = 16,
+  cex = 0.4,
+  xlab = "log2 ratio C2/C1",
+  ylab = "-log10 q-value",
+  main = "Condition 2 versus condition 1"
+)
+abline(v = c(-1, 1), lty = 2, col = "grey50")
+abline(h = -log10(0.05), lty = 2, col = "grey50")
+```
+
+The merged table can be written for another tool, while the full R object can be
+saved when downstream ComplexBrowser analysis should be reproducible.
+
+```{r write-output, eval=FALSE}
+utils::write.csv(qc$merged_table, file = "myo-qc-statistics.csv", row.names = FALSE)
+saveRDS(qc, file = "myo-qc-result.rds")
+```

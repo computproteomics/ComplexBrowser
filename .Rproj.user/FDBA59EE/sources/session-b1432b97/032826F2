@@ -1,0 +1,26 @@
+{
+    "id": "032826F2",
+    "path": "~/devel/Bioinformatics/DataAnalysis/ShinyApps/ComplexBrowser/R/qc.R",
+    "project_path": "R/qc.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1782105425659.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "123,0",
+        "scrollLine": "109"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1782211905,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1782211905,
+    "read_only": false,
+    "read_only_alternatives": []
+}

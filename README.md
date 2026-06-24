@@ -42,6 +42,16 @@ The package name is lower-case:
 library(complexbrowser)
 ```
 
+## Package Check
+
+Run package checks on the built source archive, not directly on the repository
+directory:
+
+```bash
+R CMD build .
+R CMD check --no-manual /tmp/complexbrowser_0.0.0.9000.tar.gz
+```
+
 ## Running the Shiny App
 
 From the repository checkout:

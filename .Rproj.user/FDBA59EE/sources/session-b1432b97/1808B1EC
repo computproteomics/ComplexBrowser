@@ -1,0 +1,26 @@
+{
+    "id": "1808B1EC",
+    "path": "~/devel/Bioinformatics/DataAnalysis/ShinyApps/ComplexBrowser/vignettes/complex-analysis.Rmd",
+    "project_path": "vignettes/complex-analysis.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1782105180576.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "67,0",
+        "scrollLine": "52"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1782222510,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1782222510,
+    "read_only": false,
+    "read_only_alternatives": []
+}
