@@ -1,0 +1,26 @@
+{
+    "id": "38930D2E",
+    "path": "~/devel/Bioinformatics/DataAnalysis/ShinyApps/ComplexBrowser/inst/shiny/server.R",
+    "project_path": "inst/shiny/server.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1782147063264.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "12,3",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1782222194,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1782222194,
+    "read_only": false,
+    "read_only_alternatives": []
+}

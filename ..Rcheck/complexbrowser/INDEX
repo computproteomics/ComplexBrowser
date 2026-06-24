@@ -1,0 +1,50 @@
+complexbrowser-package
+                        ComplexBrowser proteomics quality-control and
+                        protein-complex workflows
+complexbrowser_calculate_statistics
+                        Calculate ComplexBrowser QC statistics
+complexbrowser_changing_table_data
+                        Build top changing-complex table data
+complexbrowser_cli      Run the ComplexBrowser command-line interface
+complexbrowser_complex_summary
+                        Summarize scored complexes for a condition
+complexbrowser_complex_table_filename
+                        Build the complex-table CSV filename
+complexbrowser_display_complex_table
+                        Convert scored complexes to the display-table
+                        shape
+complexbrowser_extdata_path
+                        Locate a packaged ComplexBrowser extdata file
+complexbrowser_filter_database
+                        Filter a complex database to complexes with
+                        quantified subunits
+complexbrowser_filter_stats_for_database
+                        Filter statistics to proteins present in a
+                        complex database
+complexbrowser_input_statistics_filename
+                        Build the input-statistics CSV filename
+complexbrowser_load_complex_portal
+                        Load the bundled prepared EBI Complex Portal
+                        database
+complexbrowser_load_corum
+                        Load the bundled prepared CORUM database
+complexbrowser_prepare_input_table
+                        Prepare a quantitative proteomics input table
+complexbrowser_prepare_qc_report_data
+                        Prepare QC report summary data
+complexbrowser_prepare_user_database
+                        Prepare a user-defined complex database
+complexbrowser_run_app
+                        Launch the packaged ComplexBrowser Shiny app
+complexbrowser_run_complex_analysis
+                        Run package-level complex analysis
+complexbrowser_run_qc   Run the package QC workflow
+complexbrowser_score_complexes
+                        Score filtered complexes with the legacy FARMS
+                        workflow
+complexbrowser_select_database
+                        Select a bundled or supplied complex database
+complexbrowser_write_complex_table
+                        Write the complex-analysis table as CSV
+complexbrowser_write_input_statistics
+                        Write the input-statistics table as CSV
